@@ -153,7 +153,6 @@ def get_data_loader(config_data, args):
 
 
 
-
 """
 convert the weatherbench2 dataset nc file into numpy arrays
 For the dataset of geospatial only: path = data/geopotential_5.625deg/ 
