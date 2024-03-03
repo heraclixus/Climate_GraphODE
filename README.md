@@ -5,11 +5,13 @@ __Goal: model Climate Dynamics with Graph Neural Network (GNN)-based Neural diff
 
 ## Dataset 
 - Weatherbench2 
+    - ERA5 
 - ClimaX
 - ClimSim 
 
 ## Models 
 - LGODE 
+- Physics-informed Neural ODE / Graph ODE 
 - Graph Neuarl Operators 
 - Fourier Neural Operators 
 - Spatiotemporal Transformers 
