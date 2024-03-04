@@ -3,7 +3,7 @@ adapt from https://github.com/microsoft/ClimaX/blob/main/src/climax/global_forec
 """
 
 
-import os
+import os, yaml 
 from typing import Dict, Optional
 import numpy as np
 import torch
@@ -206,3 +206,43 @@ class GlobalForecastDataModule(LightningDataModule):
             pin_memory=self.hparams.pin_memory,
             collate_fn=collate_fn,
         )
+
+
+"""
+examine the data loader from ClimaX
+"""
+
+if __name__ == "__main__":
+
+    with open("../../configs/dataset.yaml", "r") as f:
+        config_data = yaml.safe_load(f)
+
+    data_module = GlobalForecastDataModule(
+        root_dir = config_data["dataset"]["root_dir"],
+        variables = config_data["dataset"]["variables"],
+        out_variables = config_data["dataset"]["out_variables"],
+        buffer_size= config_data["dataset"]["buffer_size"]
+    )
+
+    data_module.setup()
+
+    train_loader = data_module.train_dataloader()
+    val_loader = data_module.val_dataloader()
+    test_loader = data_module.test_dataloader()
+
+    # examine what's inside the data loader
+    """
+    shape of x and y 
+    x : [B, Vi, H, W] e.g., only geopotential means (64, 1, 32, 64)
+    y : [B, vo, H, W] e.g., only geopotential means (64, 1, 32, 64)
+    lead_times means how many time steps x is ahead of y
+    """
+    for idx, data in enumerate(train_loader):
+        print(f"idx = {idx}")
+        print(len(data))
+        print(f"x = {data[0].shape}")
+        print(f"y = {data[1].shape}")
+        print(f"lead_times = {data[2]}")
+        print(f"variables = {data[3]}")
+        print(f"out_variables = {data[4]}")
+        break

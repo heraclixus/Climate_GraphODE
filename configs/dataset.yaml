@@ -1,9 +1,19 @@
 weatherbench2:
-  
   forecast_path: "gs://weatherbench2/datasets/hres/2016-2022-0012-64x32_equiangular_conservative.zarr"
   obs_path: "gs://weatherbench2/datasets/era5/1959-2022-6h-64x32_equiangular_conservative.zarr"
   climate_path: "gs://weatherbench2/datasets/era5-hourly-climatology/1990-2019_6h_64x32_equiangular_conservative.zarr"
   n_timesteps: 500
-  
   attribute: "2m_temperature"
-  
+
+
+
+dataset:
+  root_dir: ../../data/geopotential_6.526deg_np/
+  variables: ["geopotential"]
+  out_variables: ["geopotential"]
+  predict_range: 36
+  hrs_each_step: 1 
+  batch_size: 128
+  buffer_size: 10000
+  num_workers: 1 
+  pin_memory: False
