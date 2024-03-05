@@ -7,7 +7,6 @@ from typing import Any
 from pytorch_lightning import LightningModule
 from torchvision.transforms import transforms
 import torch
-from lib.latent_ode import LatentGraphODE
 from lib.metrics import lat_weighted_acc, lat_weighted_mse, lat_weighted_mse_val, lat_weighted_rmse
 from lib.utils import LinearWarmupCosineAnnealingLR
 
