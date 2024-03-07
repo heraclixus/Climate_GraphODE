@@ -63,8 +63,22 @@ Here $C_{in}$ and $C_{out}$ refers to how many input features to use for trainin
 - current setup is one-step prediction. May need to modify the dataset class to use time series instead of one time dimension. 
 - Also, need to construct a graph from the dataset (grids). 
 
-- [ ] Modify the dataset class to incorporate time series.  
-- [ ] Utility function to generate graph for the dataset.
+- [x] Modify the dataset class to incorporate time series.  
+- [x] Utility function to generate graph for the dataset.
+
+To train LGODE:
+```bash
+cd src
+./train.sh
+```
+
+Current train/val/test split:
+
+train: 2015
+val: 2016
+test: 2017
+
+Grid size: 5x5 (shrinked)
 
 
 ### Step ab: Incorporate the FNO model to use the setup 
