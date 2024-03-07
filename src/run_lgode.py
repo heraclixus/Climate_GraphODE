@@ -11,6 +11,8 @@ import lib.utils as utils
 from torch.distributions.normal import Normal
 from lib.create_latent_ode_model import create_LatentODE_model
 from lib.utils import compute_loss_all_batches
+import matplotlib.pyplot as plt 
+import random 
 
 # Generative model for noisy data based on ODE
 parser = argparse.ArgumentParser('Latent ODE')
@@ -23,7 +25,7 @@ parser.add_argument('--save', type=str, default='experiments/', help="Path for s
 parser.add_argument('--save-graph', type=str, default='plot/', help="Path for save checkpoints")
 parser.add_argument('--load', type=str, default=None, help="name of ckpt. If None, run a new experiment.")
 parser.add_argument('-r', '--random-seed', type=int, default=1991, help="Random_seed")
-parser.add_argument('--data', type=str, default='spring', help="spring,charged,motion")
+parser.add_argument('--data', type=str, default='weather', help="spring,charged,motion")
 parser.add_argument('--z0-encoder', type=str, default='GTrans', help="GTrans")
 parser.add_argument('-l', '--latents', type=int, default=16, help="Size of the latent state")
 parser.add_argument('--rec-dims', type=int, default= 64, help="Dimensionality of the recognition model .")
@@ -67,7 +69,7 @@ assert(int(args.rec_dims%args.n_heads) ==0)
 #     args.n_balls = 31
 
 args.dataset = 'data/geopotential_6.526deg_np'
-args.total_ode_step = 60
+args.total_ode_step = 73
 args.suffix = '' 
 
 
@@ -85,6 +87,39 @@ if args.extrap == "True":
 elif args.extrap=="False":
     print("Running interp mode" + "-" * 80)
     args.mode="interp"
+
+
+def plot_traj(true, pred, data_type='train'):
+    '''
+    true: [#traj #time, #feat]
+    pred: [#traj #time, #feat]
+    ''' 
+    n_traj, n_time, n_feat = true.shape 
+    # line plot
+    fig, axs = plt.subplots(1,2,figsize=(4,2))
+    idx = random.sample(range(n_traj), 50)
+    for i in idx: 
+        axs[0].plot(true[i,:,0].reshape(-1), color='tab:blue')
+        axs[1].plot(pred[i,:,0].reshape(-1), color='tab:orange')
+    axs[0].set_title('Ground Truth')
+    axs[1].set_title('Prediction')
+    axs[0].set_xlabel('Time (hr)')
+    axs[1].set_xlabel('Time (hr)')
+    axs[0].set_ylabel('Geopotential (Z500)')
+ 
+    fig.tight_layout()
+    plt.savefig(f'./plot/{data_type}_compare.png')
+
+    # scatter plot
+    t_lis = [0, n_time//2, n_time-1]
+    fig, axs = plt.subplots(1,3,figsize=(6,2))
+    for i in range(len(t_lis)):
+        axs[i].plot(true[:,t_lis[i]].reshape(-1), pred[:,t_lis[i]].reshape(-1), '.')
+        axs[i].set_xlabel('Ground Truth')
+        axs[i].set_title(f'Time = {t_lis[i]}')
+    axs[0].set_ylabel('Prediction')
+    fig.tight_layout()
+    plt.savefig(f'./plot/{data_type}_compare_scatter.png') 
 
 
 #####################################################################################################
@@ -167,7 +202,7 @@ if __name__ == '__main__':
     def train_single_batch(model,batch_dict_encoder,batch_dict_decoder,batch_dict_graph,kl_coef):
 
         optimizer.zero_grad()
-        train_res = model.compute_all_losses(batch_dict_encoder, batch_dict_decoder, batch_dict_graph,
+        train_res, pred_y = model.compute_all_losses(batch_dict_encoder, batch_dict_decoder, batch_dict_graph,
                                              n_traj_samples=3, kl_coef=kl_coef)
 
         loss = train_res["loss"]
@@ -181,7 +216,7 @@ if __name__ == '__main__':
         del loss
         torch.cuda.empty_cache()
         # train_res, loss
-        return loss_value,train_res["mse"],train_res["likelihood"],train_res["kl_first_p"],train_res["std_first_p"]
+        return loss_value,train_res["mse"],train_res["likelihood"],train_res["kl_first_p"],train_res["std_first_p"], pred_y
 
     def train_epoch(epo):
         model.train()
@@ -192,6 +227,8 @@ if __name__ == '__main__':
         std_first_p_list = []
 
         torch.cuda.empty_cache()
+
+        
 
         for itr in tqdm(range(train_batch)):
 
@@ -209,10 +246,11 @@ if __name__ == '__main__':
 
             batch_dict_decoder = utils.get_next_batch(train_decoder, device)
 
-            loss, mse,likelihood,kl_first_p,std_first_p = train_single_batch(model,batch_dict_encoder,batch_dict_decoder,batch_dict_graph,kl_coef)
+            loss, mse,likelihood,kl_first_p,std_first_p, tmp = train_single_batch(model,batch_dict_encoder,batch_dict_decoder,batch_dict_graph,kl_coef)
 
+            pred_y = tmp.detach().cpu().numpy()
+            true_y = batch_dict_decoder['data'].detach().cpu().numpy()
 
-        
             #saving results
             loss_list.append(loss), mse_list.append(mse), likelihood_list.append(
                likelihood)
@@ -234,16 +272,16 @@ if __name__ == '__main__':
             np.mean(kl_first_p_list), np.mean(std_first_p_list))
 
 
-        return message_train,kl_coef
+        return message_train, kl_coef, pred_y, true_y
 
 
     for epo in range(1, args.niters + 1):
 
-        message_train, kl_coef = train_epoch(epo)
+        message_train, kl_coef, train_pred_y, train_true_y = train_epoch(epo)
 
         if epo % n_iters_to_viz == 0:
             model.eval()
-            test_res = compute_loss_all_batches(model, test_encoder, test_graph, test_decoder,
+            test_res, test_pred_y, test_true_y = compute_loss_all_batches(model, test_encoder, test_graph, test_decoder,
                                                 n_batches=test_batch, device=device,
                                                 n_traj_samples=3, kl_coef=kl_coef)
 
@@ -272,6 +310,10 @@ if __name__ == '__main__':
                     'args': args,
                     'state_dict': model.state_dict(),
                 }, ckpt_path)
+
+                ### plot result
+                plot_traj(test_true_y, test_pred_y,'test')
+                plot_traj(train_true_y, train_pred_y)
 
 
             torch.cuda.empty_cache()

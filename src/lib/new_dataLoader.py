@@ -77,7 +77,7 @@ class ParseData(object):
  
         for year in range(start_year, end_year+1):
             print('processing', year)
-            for i in range(8):
+            for i in range(1):
                 data = np.load(f"../data/geopotential_6.526deg_np/{data_type}/{year}_{i}.npz")
                 ### Shrink total grid size (for testing purpose)
                 geopotential = data['geopotential'][:,:, :5,:5]
@@ -94,7 +94,7 @@ class ParseData(object):
                 adj = np.tile(adj, (n_sub_seq,1))
                 adj = adj.reshape(n_sub_seq,num_nodes,num_nodes) 
                 edges.append(adj)
-                time_obs.append(np.ones((n_sub_seq, num_nodes, unit_len)))
+                time_obs.append(np.tile(list(range(unit_len)), (n_sub_seq*num_nodes,1)).reshape(n_sub_seq,num_nodes,-1))
                  
         time_series = np.concatenate(time_series, axis=0 )  # train: 4440 x 73 x 2048 x 1
         edges = np.concatenate(edges, axis=0)
@@ -298,7 +298,7 @@ class ParseData(object):
             tt = torch.FloatTensor(times_predict)
             vals = torch.FloatTensor(feature_predict)
             masks = torch.FloatTensor(mask_predict)
-
+             
             series_list.append((tt, vals, masks)) 
 
         return series_list, timeseries_observed, times_observed
@@ -501,7 +501,7 @@ class ParseData(object):
         combined_mask = combined_mask[:,1:,:]
 
         combined_tt = combined_tt.float()
-
+         
 
         data_dict = {
             "data": combined_vals,

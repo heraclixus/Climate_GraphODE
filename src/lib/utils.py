@@ -196,15 +196,18 @@ def compute_loss_all_batches(model,
 
 	model.eval()
 	print("Computing loss... ")
+	
 	with torch.no_grad():
-		for i in tqdm(range(n_batches)):
+		for i in tqdm(range(n_batches)): 
 			batch_dict_encoder = get_next_batch_new(encoder, device)
 			batch_dict_graph = get_next_batch_new(graph, device)
 			batch_dict_decoder = get_next_batch(decoder, device)
 
-			results = model.compute_all_losses(batch_dict_encoder, batch_dict_decoder, batch_dict_graph,
+			results, tmp = model.compute_all_losses(batch_dict_encoder, batch_dict_decoder, batch_dict_graph,
 											   n_traj_samples=n_traj_samples, kl_coef=kl_coef)
-
+			
+			pred_y = tmp.detach().cpu().numpy()
+			true_y = batch_dict_decoder['data'].detach().cpu().numpy() 
 			for key in total.keys():
 				if key in results:
 					var = results[key]
@@ -221,7 +224,7 @@ def compute_loss_all_batches(model,
 				total[key] = total[key] / n_test_batches
 
 
-	return total
+	return total, pred_y, true_y
 
 
 
@@ -229,88 +232,88 @@ def compute_loss_all_batches(model,
 from ClimaX 
 """
 class LinearWarmupCosineAnnealingLR(_LRScheduler):
-    """Sets the learning rate of each parameter group to follow a linear warmup schedule between
-    warmup_start_lr and base_lr followed by a cosine annealing schedule between base_lr and
-    eta_min."""
+	"""Sets the learning rate of each parameter group to follow a linear warmup schedule between
+	warmup_start_lr and base_lr followed by a cosine annealing schedule between base_lr and
+	eta_min."""
 
-    def __init__(
-        self,
-        optimizer: Optimizer,
-        warmup_epochs: int,
-        max_epochs: int,
-        warmup_start_lr: float = 0.0,
-        eta_min: float = 0.0,
-        last_epoch: int = -1,
-    ) -> None:
-        """
-        Args:
-            optimizer (Optimizer): Wrapped optimizer.
-            warmup_epochs (int): Maximum number of iterations for linear warmup
-            max_epochs (int): Maximum number of iterations
-            warmup_start_lr (float): Learning rate to start the linear warmup. Default: 0.
-            eta_min (float): Minimum learning rate. Default: 0.
-            last_epoch (int): The index of last epoch. Default: -1.
-        """
-        self.warmup_epochs = warmup_epochs
-        self.max_epochs = max_epochs
-        self.warmup_start_lr = warmup_start_lr
-        self.eta_min = eta_min
+	def __init__(
+		self,
+		optimizer: Optimizer,
+		warmup_epochs: int,
+		max_epochs: int,
+		warmup_start_lr: float = 0.0,
+		eta_min: float = 0.0,
+		last_epoch: int = -1,
+	) -> None:
+		"""
+		Args:
+			optimizer (Optimizer): Wrapped optimizer.
+			warmup_epochs (int): Maximum number of iterations for linear warmup
+			max_epochs (int): Maximum number of iterations
+			warmup_start_lr (float): Learning rate to start the linear warmup. Default: 0.
+			eta_min (float): Minimum learning rate. Default: 0.
+			last_epoch (int): The index of last epoch. Default: -1.
+		"""
+		self.warmup_epochs = warmup_epochs
+		self.max_epochs = max_epochs
+		self.warmup_start_lr = warmup_start_lr
+		self.eta_min = eta_min
 
-        super().__init__(optimizer, last_epoch)
+		super().__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> List[float]:
-        """Compute learning rate using chainable form of the scheduler."""
-        if not self._get_lr_called_within_step:
-            warnings.warn(
-                "To get the last learning rate computed by the scheduler, " "please use `get_last_lr()`.",
-                UserWarning,
-            )
+	def get_lr(self) -> List[float]:
+		"""Compute learning rate using chainable form of the scheduler."""
+		if not self._get_lr_called_within_step:
+			warnings.warn(
+				"To get the last learning rate computed by the scheduler, " "please use `get_last_lr()`.",
+				UserWarning,
+			)
 
-        if self.last_epoch == self.warmup_epochs:
-            return self.base_lrs
-        if self.last_epoch == 0:
-            return [self.warmup_start_lr] * len(self.base_lrs)
-        if self.last_epoch < self.warmup_epochs:
-            return [
-                group["lr"] + (base_lr - self.warmup_start_lr) / (self.warmup_epochs - 1)
-                for base_lr, group in zip(self.base_lrs, self.optimizer.param_groups)
-            ]
-        if (self.last_epoch - 1 - self.max_epochs) % (2 * (self.max_epochs - self.warmup_epochs)) == 0:
-            return [
-                group["lr"]
-                + (base_lr - self.eta_min) * (1 - math.cos(math.pi / (self.max_epochs - self.warmup_epochs))) / 2
-                for base_lr, group in zip(self.base_lrs, self.optimizer.param_groups)
-            ]
+		if self.last_epoch == self.warmup_epochs:
+			return self.base_lrs
+		if self.last_epoch == 0:
+			return [self.warmup_start_lr] * len(self.base_lrs)
+		if self.last_epoch < self.warmup_epochs:
+			return [
+				group["lr"] + (base_lr - self.warmup_start_lr) / (self.warmup_epochs - 1)
+				for base_lr, group in zip(self.base_lrs, self.optimizer.param_groups)
+			]
+		if (self.last_epoch - 1 - self.max_epochs) % (2 * (self.max_epochs - self.warmup_epochs)) == 0:
+			return [
+				group["lr"]
+				+ (base_lr - self.eta_min) * (1 - math.cos(math.pi / (self.max_epochs - self.warmup_epochs))) / 2
+				for base_lr, group in zip(self.base_lrs, self.optimizer.param_groups)
+			]
 
-        return [
-            (1 + math.cos(math.pi * (self.last_epoch - self.warmup_epochs) / (self.max_epochs - self.warmup_epochs)))
-            / (
-                1
-                + math.cos(
-                    math.pi * (self.last_epoch - self.warmup_epochs - 1) / (self.max_epochs - self.warmup_epochs)
-                )
-            )
-            * (group["lr"] - self.eta_min)
-            + self.eta_min
-            for group in self.optimizer.param_groups
-        ]
+		return [
+			(1 + math.cos(math.pi * (self.last_epoch - self.warmup_epochs) / (self.max_epochs - self.warmup_epochs)))
+			/ (
+				1
+				+ math.cos(
+					math.pi * (self.last_epoch - self.warmup_epochs - 1) / (self.max_epochs - self.warmup_epochs)
+				)
+			)
+			* (group["lr"] - self.eta_min)
+			+ self.eta_min
+			for group in self.optimizer.param_groups
+		]
 
-    def _get_closed_form_lr(self) -> List[float]:
-        """Called when epoch is passed as a param to the `step` function of the scheduler."""
-        if self.last_epoch < self.warmup_epochs:
-            return [
-                self.warmup_start_lr
-                + self.last_epoch * (base_lr - self.warmup_start_lr) / max(1, self.warmup_epochs - 1)
-                for base_lr in self.base_lrs
-            ]
+	def _get_closed_form_lr(self) -> List[float]:
+		"""Called when epoch is passed as a param to the `step` function of the scheduler."""
+		if self.last_epoch < self.warmup_epochs:
+			return [
+				self.warmup_start_lr
+				+ self.last_epoch * (base_lr - self.warmup_start_lr) / max(1, self.warmup_epochs - 1)
+				for base_lr in self.base_lrs
+			]
 
-        return [
-            self.eta_min
-            + 0.5
-            * (base_lr - self.eta_min)
-            * (1 + math.cos(math.pi * (self.last_epoch - self.warmup_epochs) / (self.max_epochs - self.warmup_epochs)))
-            for base_lr in self.base_lrs
-        ]
+		return [
+			self.eta_min
+			+ 0.5
+			* (base_lr - self.eta_min)
+			* (1 + math.cos(math.pi * (self.last_epoch - self.warmup_epochs) / (self.max_epochs - self.warmup_epochs)))
+			for base_lr in self.base_lrs
+		]
 
 
 
@@ -319,109 +322,109 @@ utilities for FNO
 """
 
 class UnitGaussianNormalizer(object):
-    def __init__(self, x, eps=0.00001):
-        super(UnitGaussianNormalizer, self).__init__()
+	def __init__(self, x, eps=0.00001):
+		super(UnitGaussianNormalizer, self).__init__()
 
-        # x could be in shape of ntrain*n or ntrain*T*n or ntrain*n*T
-        self.mean = torch.mean(x, 0)
-        self.std = torch.std(x, 0)
-        self.eps = eps
+		# x could be in shape of ntrain*n or ntrain*T*n or ntrain*n*T
+		self.mean = torch.mean(x, 0)
+		self.std = torch.std(x, 0)
+		self.eps = eps
 
-    def encode(self, x):
-        x = (x - self.mean) / (self.std + self.eps)
-        return x
+	def encode(self, x):
+		x = (x - self.mean) / (self.std + self.eps)
+		return x
 
-    def decode(self, x, sample_idx=None):
-        if sample_idx is None:
-            std = self.std + self.eps # n
-            mean = self.mean
-        else:
-            if len(self.mean.shape) == len(sample_idx[0].shape):
-                std = self.std[sample_idx] + self.eps  # batch*n
-                mean = self.mean[sample_idx]
-            if len(self.mean.shape) > len(sample_idx[0].shape):
-                std = self.std[:,sample_idx]+ self.eps # T*batch*n
-                mean = self.mean[:,sample_idx]
+	def decode(self, x, sample_idx=None):
+		if sample_idx is None:
+			std = self.std + self.eps # n
+			mean = self.mean
+		else:
+			if len(self.mean.shape) == len(sample_idx[0].shape):
+				std = self.std[sample_idx] + self.eps  # batch*n
+				mean = self.mean[sample_idx]
+			if len(self.mean.shape) > len(sample_idx[0].shape):
+				std = self.std[:,sample_idx]+ self.eps # T*batch*n
+				mean = self.mean[:,sample_idx]
 
-        # x is in shape of batch*n or T*batch*n
-        x = (x * std) + mean
-        return x
+		# x is in shape of batch*n or T*batch*n
+		x = (x * std) + mean
+		return x
 
-    def cuda(self):
-        self.mean = self.mean.cuda()
-        self.std = self.std.cuda()
+	def cuda(self):
+		self.mean = self.mean.cuda()
+		self.std = self.std.cuda()
 
-    def cpu(self):
-        self.mean = self.mean.cpu()
-        self.std = self.std.cpu()
+	def cpu(self):
+		self.mean = self.mean.cpu()
+		self.std = self.std.cpu()
 
 # normalization, Gaussian
 class GaussianNormalizer(object):
-    def __init__(self, x, eps=0.00001):
-        super(GaussianNormalizer, self).__init__()
+	def __init__(self, x, eps=0.00001):
+		super(GaussianNormalizer, self).__init__()
 
-        self.mean = torch.mean(x)
-        self.std = torch.std(x)
-        self.eps = eps
+		self.mean = torch.mean(x)
+		self.std = torch.std(x)
+		self.eps = eps
 
-    def encode(self, x):
-        x = (x - self.mean) / (self.std + self.eps)
-        return x
+	def encode(self, x):
+		x = (x - self.mean) / (self.std + self.eps)
+		return x
 
-    def decode(self, x, sample_idx=None):
-        x = (x * (self.std + self.eps)) + self.mean
-        return x
+	def decode(self, x, sample_idx=None):
+		x = (x * (self.std + self.eps)) + self.mean
+		return x
 
-    def cuda(self):
-        self.mean = self.mean.cuda()
-        self.std = self.std.cuda()
+	def cuda(self):
+		self.mean = self.mean.cuda()
+		self.std = self.std.cuda()
 
-    def cpu(self):
-        self.mean = self.mean.cpu()
-        self.std = self.std.cpu()
+	def cpu(self):
+		self.mean = self.mean.cpu()
+		self.std = self.std.cpu()
 
 
 class LpLoss(object):
-    def __init__(self, d=2, p=2, size_average=True, reduction=True):
-        super(LpLoss, self).__init__()
+	def __init__(self, d=2, p=2, size_average=True, reduction=True):
+		super(LpLoss, self).__init__()
 
-        #Dimension and Lp-norm type are postive
-        assert d > 0 and p > 0
+		#Dimension and Lp-norm type are postive
+		assert d > 0 and p > 0
 
-        self.d = d
-        self.p = p
-        self.reduction = reduction
-        self.size_average = size_average
+		self.d = d
+		self.p = p
+		self.reduction = reduction
+		self.size_average = size_average
 
-    def abs(self, x, y):
-        num_examples = x.size()[0]
+	def abs(self, x, y):
+		num_examples = x.size()[0]
 
-        #Assume uniform mesh
-        h = 1.0 / (x.size()[1] - 1.0)
+		#Assume uniform mesh
+		h = 1.0 / (x.size()[1] - 1.0)
 
-        all_norms = (h**(self.d/self.p))*torch.norm(x.view(num_examples,-1) - y.view(num_examples,-1), self.p, 1)
+		all_norms = (h**(self.d/self.p))*torch.norm(x.view(num_examples,-1) - y.view(num_examples,-1), self.p, 1)
 
-        if self.reduction:
-            if self.size_average:
-                return torch.mean(all_norms)
-            else:
-                return torch.sum(all_norms)
+		if self.reduction:
+			if self.size_average:
+				return torch.mean(all_norms)
+			else:
+				return torch.sum(all_norms)
 
-        return all_norms
+		return all_norms
 
-    def rel(self, x, y):
-        num_examples = x.size()[0]
+	def rel(self, x, y):
+		num_examples = x.size()[0]
 
-        diff_norms = torch.norm(x.reshape(num_examples,-1) - y.reshape(num_examples,-1), self.p, 1)
-        y_norms = torch.norm(y.reshape(num_examples,-1), self.p, 1)
+		diff_norms = torch.norm(x.reshape(num_examples,-1) - y.reshape(num_examples,-1), self.p, 1)
+		y_norms = torch.norm(y.reshape(num_examples,-1), self.p, 1)
 
-        if self.reduction:
-            if self.size_average:
-                return torch.mean(diff_norms/y_norms)
-            else:
-                return torch.sum(diff_norms/y_norms)
+		if self.reduction:
+			if self.size_average:
+				return torch.mean(diff_norms/y_norms)
+			else:
+				return torch.sum(diff_norms/y_norms)
 
-        return diff_norms/y_norms
+		return diff_norms/y_norms
 
-    def __call__(self, x, y):
-        return self.rel(x, y)
+	def __call__(self, x, y):
+		return self.rel(x, y)

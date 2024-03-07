@@ -1,1 +1,1 @@
-python3 run_lgode.py --batch-size 20
+python3 run_lgode.py --batch-size 20 --sample-percent-train 0.6 --niters 500
