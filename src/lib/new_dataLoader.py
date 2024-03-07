@@ -144,14 +144,14 @@ class ParseData(object):
         
         print(f'\n############# verify shapes in {data_type}')
         print('Encoder feature: (#seq, #nodes, #obs_timestep, #feat) =', timeseries_observed.shape)
-        print('Decoder feature: (#seq, #nodes, #pred_timestep, #feat) =', times_de.shape)
+        print('Decoder feature: (#seq, #nodes, #pred_timestep, #feat) =', timeseries_de.shape)
 
         print('Encoder time: (#seq, #nodes, #obs_timestep) =', times_observed.shape)
         print('Decoder time: (#seq, #nodes, #pred_timestep) =', times_de.shape)
 
         print('edges: (#seq, #nodes, #nodes) =', edges.shape, '\n')
          
-
+       
         encoder_data_loader, graph_data_loader = self.transfer_data(timeseries_observed, edges,
                                                                     times_observed, time_begin=time_begin)
 
@@ -300,7 +300,7 @@ class ParseData(object):
             masks = torch.FloatTensor(mask_predict)
              
             series_list.append((tt, vals, masks)) 
-
+        
         return series_list, timeseries_observed, times_observed
 
     def decoder_data(self, time_series, times):
@@ -501,6 +501,7 @@ class ParseData(object):
         combined_mask = combined_mask[:,1:,:]
 
         combined_tt = combined_tt.float()
+        
          
 
         data_dict = {
