@@ -1,1 +1,4 @@
 /data
+logs
+experiments
+__pycache__ 
