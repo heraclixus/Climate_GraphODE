@@ -1,0 +1,1 @@
+python3 run_models.py --batch-size 20

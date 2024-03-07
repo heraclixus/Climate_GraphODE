@@ -7,3 +7,8 @@ xarray==2023.6.0
 pandas==2.0.3
 xarray-beam==0.6.2
 zarr==2.15.0
+
+
+# graph ODE
+torch_geometric==2.5.0
+torchdiffeq==0.2.2

@@ -65,7 +65,7 @@ class DiffeqSolver(nn.Module):
 
         rel_type_onehot = torch.FloatTensor(first_point_augumented.size(0), self.rel_rec.size(0),
                                                 self.args.edge_types).to(self.device)  # [b,20,2]
-        rel_type_onehot.zero_()
+        rel_type_onehot.zero_() 
         rel_type_onehot.scatter_(2, graph_augmented.view(first_point_augumented.size(0), -1, 1), 1)  # [b,20,2]
         # rel_type_onehot[b,20,1]: edge value, [b,20,0] :1-edge value.
 

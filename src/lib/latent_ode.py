@@ -21,10 +21,12 @@ class LatentGraphODE(VAE_Baseline):
 	def get_reconstruction(self, batch_en,batch_de, batch_g,n_traj_samples=1,run_backwards=True):
 
         #Encoder:
+		#print('batch_en.x', batch_en.x.shape, batch_en.edge_attr.shape, batch_en.edge_index.shape, batch_en.edge_same.shape )
+		 
 		first_point_mu, first_point_std = self.encoder_z0(batch_en.x, batch_en.edge_attr,
 														  batch_en.edge_index, batch_en.pos, batch_en.edge_same,
 														  batch_en.batch, batch_en.y)  # [num_ball,10]
-
+		 
 		means_z0 = first_point_mu.repeat(n_traj_samples,1,1) #[3,num_ball,10]
 		sigmas_z0 = first_point_std.repeat(n_traj_samples,1,1) #[3,num_ball,10]
 		first_point_enc = utils.sample_standard_gaussian(means_z0, sigmas_z0) #[3,num_ball,10]

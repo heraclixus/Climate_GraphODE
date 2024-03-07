@@ -100,6 +100,8 @@ class GTrans(MessagePassing):
 
             edge_temporal_true = self.temporal_net(edges_temporal)
             edges_temporal = edges_temporal.view(-1,1)
+            # print(x_j.shape, edges_temporal.shape)
+            # exit()
             x_j_transfer = F.gelu(w_transfer(torch.cat((x_j, edges_temporal), dim=1))) + edge_temporal_true
 
             attention = self.each_head_attention(x_j_transfer,k_linear_same,k_linear_diff,q_linear,x_i,edge_same) #[4,1]
@@ -188,7 +190,7 @@ class NRIConv(nn.Module):
         all_msgs = torch.zeros(pre_msg.size(0), pre_msg.size(1),self.msg_out_shape)  # [b,20,256]
 
         if inputs.is_cuda:
-            all_msgs = all_msgs.cuda()
+            all_msgs = all_msgs.to(inputs.device)
 
         if self.skip_first_edge_type:
             start_idx = 1
@@ -332,7 +334,7 @@ class GNN(nn.Module):
         dim = attention_ball.size()[1]
         new_attention = torch.ones(node_size, dim)
         if attention_ball.device != torch.device("cpu"):
-            new_attention = new_attention.cuda()
+            new_attention = new_attention.to(attention_ball.device)
 
         group_num = 0
         current_index = 0

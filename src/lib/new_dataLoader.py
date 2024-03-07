@@ -10,9 +10,7 @@ from torch.nn.utils.rnn import pad_sequence
 total_step = 1095 # total number of time steps
 unit_len = 73 # chunk a sequence into subsequences of length unit_len (reason: predicting 1095 time steps at once is too much work)
 n_sub_seq = total_step // unit_len
-
-
-
+ 
 class ParseData(object):
 
     def __init__(self, dataset_path,args,suffix='_springs5',mode="interp"):
@@ -63,7 +61,7 @@ class ParseData(object):
             times.npy: [#seq, #node, #timesteps] 
         '''
         if data_type == 'train':
-            start_year = 2010
+            start_year = 2015
             end_year = 2015
         elif data_type == 'val':
             start_year = 2016
@@ -71,30 +69,36 @@ class ParseData(object):
         else:
             start_year = 2017
             end_year = 2017
-        print('Generating graphs and time series')
+        print('--> Generating graphs and time series')
+        print('    For testing purpose, we take a subgrid of size 5 x 5 and shrink the year range to [2015] for train\n')
         time_series = []
         edges = []
         time_obs = [] # observed timestamps (required for LGODE)
+ 
         for year in range(start_year, end_year+1):
             print('processing', year)
             for i in range(8):
-                data = np.load(f"../../data/geopotential_6.526deg_np/{data_type}/{year}_{i}.npz")
-                H, W = data['geopotential'].shape[2], data['geopotential'].shape[3]
-                geopotential = data['geopotential'].squeeze(1).reshape(total_step,-1)  
-                num_nodes = geopotential.shape[-1] 
+                data = np.load(f"../data/geopotential_6.526deg_np/{data_type}/{year}_{i}.npz")
+                ### Shrink total grid size (for testing purpose)
+                geopotential = data['geopotential'][:,:, :5,:5]
+                H, W = geopotential.shape[2], geopotential.shape[3]
+                geopotential = geopotential.squeeze(1).reshape(total_step,-1)  
+                num_nodes = geopotential.shape[-1]  
+                  
                 geopotential = geopotential.reshape(n_sub_seq, unit_len, num_nodes) # slice
+                geopotential = geopotential.transpose(0,2,1) 
                 geopotential = np.expand_dims(geopotential, axis=3) # expand a dimension for feature
+                 
                 time_series.append(geopotential)  
                 adj = self.construct_grid(H, W)
                 adj = np.tile(adj, (n_sub_seq,1))
                 adj = adj.reshape(n_sub_seq,num_nodes,num_nodes) 
                 edges.append(adj)
                 time_obs.append(np.ones((n_sub_seq, num_nodes, unit_len)))
-                
- 
-        time_series = np.concatenate(time_series, axis=0)  # train: 4440 x 73 x 2048 x 1
+                 
+        time_series = np.concatenate(time_series, axis=0 )  # train: 4440 x 73 x 2048 x 1
         edges = np.concatenate(edges, axis=0)
-        time_obs = np.concatenate(time_obs, axis=0)  
+        time_obs = np.concatenate(time_obs, axis=0)   
         return time_series, edges, time_obs 
 
     def load_data(self,sample_percent,batch_size,data_type="train"):
@@ -108,36 +112,46 @@ class ParseData(object):
         # Loading Data
         #loc = np.load(self.dataset_path + '/loc_' + data_type + self.suffix + '.npy')[:cut_num]
         #vel = np.load(self.dataset_path + '/vel_' + data_type + self.suffix + '.npy')[:cut_num]
-        
-        timeseries, edges, times = self.preprocess(data_type) 
-        edges = np.load(self.dataset_path + '/edges_' + data_type + self.suffix + '.npy')  
-        times = np.load(self.dataset_path + '/times_' + data_type + self.suffix + '.npy') 
+        #edges = np.load(self.dataset_path + '/edges_' + data_type + self.suffix + '.npy')  
+        #times = np.load(self.dataset_path + '/times_' + data_type + self.suffix + '.npy') 
 
+        timeseries, edges, times = self.preprocess(data_type) 
+         
         self.num_graph = timeseries.shape[0]
         self.num_atoms = timeseries.shape[1]
+        self.args.n_balls = timeseries.shape[1]
         self.feature = timeseries.shape[-1]
-        print("number graph in   "+data_type+"   is %d" % self.num_graph)
-        print("number atoms in   " + data_type + "   is %d" % self.num_atoms)
-
+        print("# graph in   " + data_type + "   is %d" % self.num_graph)
+        print("# nodes in   " + data_type + "   is %d" % self.num_atoms)
+ 
          
         self.timelength = timeseries.shape[2]
-
-
-
+ 
         # split data w.r.t interp and extrap, also normalize times
         if self.mode=="interp":
             timeseries_en,times_en = self.interp_extrap(timeseries,times,self.mode,data_type) 
             timeseries_de = timeseries_en
             times_de = times_en
         elif self.mode == "extrap":
-            timeseries_en,times_en,loc_de,timeseries_de,times_de = self.interp_extrap(timeseries,times,self.mode,data_type)
-
+            timeseries_en,times_en,timeseries_de,times_de = self.interp_extrap(timeseries,times,self.mode,data_type)
+        
         #Encoder dataloader
         series_list_observed, timeseries_observed, times_observed = self.split_data(timeseries_en, times_en)
         if self.mode == "interp":
             time_begin = 0
         else:
-            time_begin = 1
+            time_begin = 1  
+        
+        print(f'\n############# verify shapes in {data_type}')
+        print('Encoder feature: (#seq, #nodes, #obs_timestep, #feat) =', timeseries_observed.shape)
+        print('Decoder feature: (#seq, #nodes, #pred_timestep, #feat) =', times_de.shape)
+
+        print('Encoder time: (#seq, #nodes, #obs_timestep) =', times_observed.shape)
+        print('Decoder time: (#seq, #nodes, #pred_timestep) =', times_de.shape)
+
+        print('edges: (#seq, #nodes, #nodes) =', edges.shape, '\n')
+         
+
         encoder_data_loader, graph_data_loader = self.transfer_data(timeseries_observed, edges,
                                                                     times_observed, time_begin=time_begin)
 
@@ -169,14 +183,17 @@ class ParseData(object):
         encoder_data_loader = utils.inf_generator(encoder_data_loader)
         graph_data_loader = utils.inf_generator(graph_data_loader)
         decoder_data_loader = utils.inf_generator(decoder_data_loader)
-
+         
         return encoder_data_loader, decoder_data_loader, graph_data_loader, num_batch
-
-
+ 
 
     def interp_extrap(self,timeseries,times,mode,data_type): 
-        timeseries_observed = np.ones_like(timeseries)
-        times_observed = np.ones_like(times)
+        #timeseries_observed = np.ones_like(timeseries)
+        # times_observed = np.ones_like(times)
+        n_seq, n_node, total_time, n_feat = timeseries.shape  
+        
+        timeseries_observed = np.ones((n_seq, n_node, total_time-self.num_pre, n_feat)) 
+        times_observed = np.ones((n_seq, n_node, total_time-self.num_pre))
         if mode =="interp":
             if data_type== "test":
                 # get ride of the extra nodes in testing data.
@@ -185,9 +202,9 @@ class ParseData(object):
                         timeseries_observed[i][j] = timeseries[i][j][:-self.num_pre]
                         times_observed[i][j] = times[i][j][:-self.num_pre]
 
-                return loc_observed,vel_observed,times_observed/self.total_step
+                return timeseries_observed,times_observed/self.total_step
             else:
-                return timeseries,timeseries,times/self.total_step
+                return timeseries,times/self.total_step
  
         elif mode == "extrap":# split into 2 parts and normalize t seperately 
             timeseries_observed = np.ones_like(timeseries)
@@ -225,34 +242,33 @@ class ParseData(object):
             return timeseries, times_observed,timeseries_extrap ,times_extrap
 
 
-    def split_data(self,loc,vel,times):
-        loc_observed = np.ones_like(loc)
-        vel_observed = np.ones_like(vel)
-        times_observed = np.ones_like(times)
+    def split_data(self,timeseries,times):
+        # timeseries_observed = np.ones_like(timeseries) 
+        # times_observed = np.ones_like(times)
+        n_seq, n_node, total_time, n_feat = timeseries.shape   
+        timeseries_observed = np.ones((n_seq, n_node, int(total_time * self.sample_percent), n_feat)) 
+        times_observed = np.ones((n_seq, n_node, int(total_time * self.sample_percent)))
 
         # split encoder data
-        loc_list = []
-        vel_list = []
+        timeseries_list = [] 
         times_list = []
 
         for i in range(self.num_graph):
             for j in range(self.num_atoms):
-                loc_list.append(loc[i][j][1:])  # [2500] num_train * num_ball
-                vel_list.append(vel[i][j][1:])
+                timeseries_list.append(timeseries[i][j][1:])  # [2500] num_train * num_ball 
                 times_list.append(times[i][j][1:])
 
  
         series_list = []
         odernn_list = []
-        for i, loc_series in enumerate(loc_list):
+        for i, loc_series in enumerate(timeseries_list):
             # for encoder data
             graph_index = i // self.num_atoms
             atom_index = i % self.num_atoms
             length = len(loc_series)
             preserved_idx = sorted(
                 np.random.choice(np.arange(length), int(length * self.sample_percent), replace=False))
-            loc_observed[graph_index][atom_index] = loc_series[preserved_idx]
-            vel_observed[graph_index][atom_index] = vel_list[i][preserved_idx]
+            timeseries_observed[graph_index][atom_index] = loc_series[preserved_idx] 
             times_observed[graph_index][atom_index] = times_list[i][preserved_idx]
 
             # for odernn encoder
@@ -261,8 +277,7 @@ class ParseData(object):
             mask_observe = np.zeros((self.timelength, self.feature))  # [T,D] 1 means observed
 
             times_observe[:len(times_list[i][preserved_idx])] = times_list[i][preserved_idx]
-            feature_observe[:len(times_list[i][preserved_idx])] = np.concatenate(
-                (loc_series[preserved_idx], vel_list[i][preserved_idx]), axis=1)
+            feature_observe[:len(times_list[i][preserved_idx])] = loc_series[preserved_idx]
             mask_observe[:len(times_list[i][preserved_idx])] = 1
 
             tt_observe = torch.FloatTensor(times_observe)
@@ -277,29 +292,26 @@ class ParseData(object):
             mask_predict = np.zeros((self.timelength, self.feature))  # [T,D] 1 means observed
 
             times_predict[:len(times_list[i])] = times_list[i]
-            feature_predict[:len(times_list[i])] = np.concatenate((loc_series, vel_list[i]), axis=1)
+            feature_predict[:len(times_list[i])] = loc_series
             mask_predict[:len(times_list[i])] = 1
 
             tt = torch.FloatTensor(times_predict)
             vals = torch.FloatTensor(feature_predict)
             masks = torch.FloatTensor(mask_predict)
 
-            series_list.append((tt, vals, masks))
+            series_list.append((tt, vals, masks)) 
 
+        return series_list, timeseries_observed, times_observed
 
-        return series_list, loc_observed, vel_observed, times_observed
-
-    def decoder_data(self, loc, vel, times):
+    def decoder_data(self, time_series, times):
 
         # split decoder data
-        loc_list = []
-        vel_list = []
+        loc_list = [] 
         times_list = []
 
         for i in range(self.num_graph):
             for j in range(self.num_atoms):
-                loc_list.append(loc[i][j])  # [2500] num_train * num_ball
-                vel_list.append(vel[i][j])
+                loc_list.append(time_series[i][j])  # [2500] num_train * num_ball 
                 times_list.append(times[i][j])
 
         series_list = []
@@ -310,7 +322,7 @@ class ParseData(object):
             mask_predict = np.zeros((self.timelength, self.feature))  # [T,D] 1 means observed
 
             times_predict[:len(times_list[i])] = times_list[i]
-            feature_predict[:len(times_list[i])] = np.concatenate((loc_series, vel_list[i]), axis=1)
+            feature_predict[:len(times_list[i])] = loc_series
             mask_predict[:len(times_list[i])] = 1
 
             tt = torch.FloatTensor(times_predict)
@@ -320,9 +332,7 @@ class ParseData(object):
             series_list.append((tt, vals, masks))
 
         return series_list
-
-
-
+ 
     def transfer_data(self,time_series, edges, times, time_begin=0):
         data_list = []
         graph_list = []
@@ -348,9 +358,7 @@ class ParseData(object):
         # Creating edge_type
         # Creating y: [N], value= num_steps
         # Creeating pos 【N】
-        # forward: t0=0;  otherwise: t0=tN/2
- 
-
+        # forward: t0=0;  otherwise: t0=tN/2 
         # compute cutting window size:
         if self.cutting_edge:
             if self.suffix == "_springs5" or self.suffix == "_charged5":
@@ -375,17 +383,15 @@ class ParseData(object):
         ball_nodes = dict()
 
         # Creating x, y, x_pos
-        for i, ball in enumerate(loc):
-            loc_ball = ball
-            vel_ball = vel[i]
+        for i in range(len(time_series)):  
             time_ball = time[i]
 
             # Creating y
             y[i] = len(time_ball)
 
             # Creating x and x_pos, by tranverse each ball's sequence
-            for j in range(loc_ball.shape[0]):
-                xj_feature = np.concatenate((loc_ball[j], vel_ball[j]))
+            for j in range(time_series[i].shape[0]):
+                xj_feature = time_series[i][j]
                 x.append(xj_feature)
 
                 x_pos.append(time_ball[j] - time_begin)
@@ -453,8 +459,7 @@ class ParseData(object):
 
         graph_index_original = torch.LongTensor(edge_index_original)
         edge_data = Data(x = torch.ones(self.num_atoms),edge_index = graph_index_original)
-
-
+ 
         graph_data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, pos=x_pos, edge_same=edge_is_same)
         edge_size = edge_index.shape[1]
 

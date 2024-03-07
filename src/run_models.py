@@ -33,7 +33,7 @@ parser.add_argument('--n-heads', type=int, default=1, help="Number of heads in G
 parser.add_argument('--gen-layers', type=int, default=1, help="Number of layers  ODE func ")
 parser.add_argument('--extrap', type=str,default="False", help="Set extrapolation mode. If this flag is not set, run interpolation mode.")
 parser.add_argument('--dropout', type=float, default=0.2,help='Dropout rate (1 - keep probability).')
-parser.add_argument('--sample-percent-train', type=float, default=0.6,help='Percentage of training observtaion data')
+parser.add_argument('--sample-percent-train', type=float, default=0.2,help='Percentage of training observtaion data')
 parser.add_argument('--sample-percent-test', type=float, default=0.6,help='Percentage of testing observtaion data')
 parser.add_argument('--augment_dim', type=int, default=64, help='augmented dimension')
 parser.add_argument('--edge_types', type=int, default=2, help='edge number in NRI')
@@ -51,9 +51,7 @@ parser.add_argument('--alias', type=str, default="run")
 
 args = parser.parse_args()
 assert(int(args.rec_dims%args.n_heads) ==0)
-
-
-
+ 
 # if args.data == "spring":
 #     args.dataset = 'data/example_data'
 #     args.suffix = '_springs5'
@@ -70,13 +68,13 @@ assert(int(args.rec_dims%args.n_heads) ==0)
 
 args.dataset = 'data/geopotential_6.526deg_np'
 args.total_ode_step = 60
- 
+args.suffix = '' 
 
 
 ############ CPU AND GPU related, Mode related, Dataset Related
 if torch.cuda.is_available():
 	print("Using GPU" + "-"*80)
-	device = torch.device("cuda:0")
+	device = torch.device("cuda:3")
 else:
 	print("Using CPU" + "-" * 80)
 	device = torch.device("cpu")
@@ -104,7 +102,7 @@ if __name__ == '__main__':
     experimentID = args.load
     if experimentID is None:
         # Make a new experiment ID
-        experimentID = int(SystemRandom().random() * 100000)
+        experimentID = args.random_seed# int(SystemRandom().random() * 100000)
 
 
     ############ Loading Data
@@ -114,9 +112,7 @@ if __name__ == '__main__':
                                                                               batch_size=args.batch_size,
                                                                               data_type="test")
     train_encoder,train_decoder, train_graph,train_batch = dataloader.load_data(sample_percent=args.sample_percent_train,batch_size=args.batch_size,data_type="train")
-
-
-
+  
     input_dim = dataloader.feature
 
     ############ Command Related

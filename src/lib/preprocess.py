@@ -53,14 +53,14 @@ def preprocess( data_type):
             geopotential = data['geopotential'].squeeze(1).reshape(total_step,-1)  
             num_nodes = geopotential.shape[-1] 
             geopotential = geopotential.reshape(n_sub_seq, unit_len, num_nodes) # slice
+            geopotential = geopotential.transpose(0,2,1)
             geopotential = np.expand_dims(geopotential, axis=3) # expand a dimension for feature
             time_series.append(geopotential)  
             adj =  construct_grid(H, W)
             adj = np.tile(adj, (n_sub_seq,1))
             adj = adj.reshape(n_sub_seq,num_nodes,num_nodes) 
             edges.append(adj)
-            time_obs.append(np.ones((n_sub_seq, num_nodes, unit_len)))
-            
+            time_obs.append(np.ones((n_sub_seq, num_nodes, unit_len))) 
 
     time_series = np.concatenate(time_series, axis=0)  # train: 4440 x 73 x 2048 x 1
     edges = np.concatenate(edges, axis=0)
