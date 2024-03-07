@@ -17,6 +17,6 @@ The input trajectories to new_dataLoader.py's load_data() are of shape
 
 In `new_dataLoader.py`, the `split_data()` produces an output named `series_list` which will be the ground truth trajectories used to compute the loss (given mode `interpolation`). This true trajectory is of shape, `[#traj, #time, #feat]`, where `#traj = #graph * #node`. Later on, this `#traj` will be chunked into different batches. But the shape of the true trajectories will remain three dimensions.
 
-In the output, the trajectories have shape `[#sample, #traj, #time, #feat]`. This is because the variational encoder part computes a distribution for the hidden initial condition and the graph ODE would sample `#sample` initial conditions for each trajectory.  
+In the output, the trajectories have shape `[#sample, #traj, #time, #feat]`. This is because the variational encoder part computes a distribution for the hidden initial condition and the graph ODE would sample `#sample` initial conditions for each trajectory. In the implementation, `#sample=3` and we took the middle sample as the prediction when plotting. 
 
 
