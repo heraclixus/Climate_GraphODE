@@ -19,7 +19,7 @@ class GlobalForecastModule(LightningModule):
                  warmup_epochs=1000,max_epochs=2000, warmup_start_lr=1e-8, eta_min=1e-8):
         super().__init__()
         self.save_hyperparameters(logger=False, ignore=["model"])
-        self.model = model
+        self.net = model
     
     def set_denormalization(self, mean, std):
         self.denormalization = transforms.Normalize(mean, std)
