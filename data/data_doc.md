@@ -1,1 +1,0 @@
-Refer to `load_data.ipynb` for loading an example file `era5/1959-2022-6h-64x32_equiangular_conservative.zarr`.

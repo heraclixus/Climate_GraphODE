@@ -80,8 +80,10 @@ class ParseData(object):
             for i in range(1):
                 data = np.load(f"../data/geopotential_6.526deg_np/{data_type}/{year}_{i}.npz")
                 ### Shrink total grid size (for testing purpose)
-                geopotential = data['geopotential'][:,:, :5,:5]
+                geopotential = data['geopotential'][:,:,:10,:20]
                 H, W = geopotential.shape[2], geopotential.shape[3]
+                self.args.H = H 
+                self.args.W = W
                 geopotential = geopotential.squeeze(1).reshape(total_step,-1)  
                 num_nodes = geopotential.shape[-1]  
                   
@@ -144,6 +146,9 @@ class ParseData(object):
         
         print(f'\n############# verify shapes in {data_type}')
         print('Encoder feature: (#seq, #nodes, #obs_timestep, #feat) =', timeseries_observed.shape)
+        
+        self.args.std = np.mean([timeseries_observed[i,:,0,:].std() for i in range(self.num_graph)])
+        
         print('Decoder feature: (#seq, #nodes, #pred_timestep, #feat) =', timeseries_de.shape)
 
         print('Encoder time: (#seq, #nodes, #obs_timestep) =', times_observed.shape)

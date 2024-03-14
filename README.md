@@ -72,13 +72,23 @@ cd src
 ./train.sh
 ```
 
-Current train/val/test split:
+**03/11/23**
 
-train: 2015
-val: 2016
-test: 2017
+- Current train/val/test split:
+  - train: 2015 (Jan -> mid-Feb); test: 2017 (Jan -> mid-Feb)
+  - Grid size: 10x20 (shrinked) 
+  - Batch size: 5
+  - Minimal RMSE: 2615.763 
 
-Grid size: 5x5 (shrinked)
+**Issues**
+
+- **Data loading**: The encoder of LGODE creates a spatio-temporal graph of size #timestep * #nodes. Each node represents a grid cell $(i)$ at a unique observed timestamp ($t$); the node attribute is denoted as $x_i^t$. The encoder is able to capture the relationship between $(x_i^t, x_j^t')$, i.e., the observation of grid cell $i$ at time $t$ and grid cell $j$ at time $t'$.  Although this construction captures fine-grained spatio-temporal relationship, it demands high computational resources. In particular, when loading the entire grid containing 2048 nodes with #timestep=33, the process was killed during executing `transfer_one_graph()`. 
+  - Sol 1: In the current version, `transfer_one_graph()` creates a $NT\times NT$ matrix and then obtains the index and values of the nonzero entries. We may consider directly providing the nonzero entries and their values without creating the full matrix.
+  - Sol 2: Use the original graph topology and assign the observed time series as the node attributes. Suppose we apply a linear transformation to all variables at each observed time step. Each node has a feature matrix of size $d \times T_{\text{obs}}$ where $d$ is the hidden dimension and $T_{\text{obs}}$ is the number of time steps. We then apply a function that aggregates vectors along the temporal dimension to transform the feature matrix to a vector of size $d$. Such a function consists of attention mechanisms that compute the contribution of individual timestamp to the aggregated vector. Encoding spatial interaction can be captured by either GCN or GAT layers after the aggregation over temporal dimension.    
+- **Initial Condition Error**: In the prediction, the initial condition's distribution has a much smaller variance than ground truth.
+  - Sol 1: Normalize each individual temporal graph sequence to have zero-mean and a fixed standard deviation at the initial time step. Rescale after making prediction. 
+  - Sol 2: Modify the prior distribution to incorporate the larger variance. The ELBO loss  penalizes large KL-divergence between the distribution of hidden initial condition and the prior, which is a normal distribution.  
+    
 
 
 ### Step ab: Incorporate the FNO model to use the setup 

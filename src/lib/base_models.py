@@ -3,7 +3,7 @@ from torch.distributions.normal import Normal
 from torch.distributions import kl_divergence
 import torch.nn as nn
 import torch
-
+import numpy as np
 
 class VAE_Baseline(nn.Module):
 	def __init__(self, input_dim, latent_dim, 
@@ -103,6 +103,7 @@ class VAE_Baseline(nn.Module):
 		results["loss"] = torch.mean(loss)
 		results["likelihood"] = torch.mean(rec_likelihood).data.item()
 		results["mse"] = torch.mean(mse).data.item()
+		results["rmse"] = np.sqrt(torch.mean(mse).data.item())
 		results["kl_first_p"] =  torch.mean(kldiv_z0).detach().data.item()
 		results["std_first_p"] = torch.mean(fp_std).detach().data.item()
 

@@ -76,7 +76,7 @@ args.suffix = ''
 ############ CPU AND GPU related, Mode related, Dataset Related
 if torch.cuda.is_available():
 	print("Using GPU" + "-"*80)
-	device = torch.device("cuda:3")
+	device = torch.device("cuda:2")
 else:
 	print("Using CPU" + "-" * 80)
 	device = torch.device("cpu")
@@ -95,6 +95,26 @@ def plot_traj(true, pred, data_type='train'):
     pred: [#traj #time, #feat]
     ''' 
     n_traj, n_time, n_feat = true.shape 
+    print('true.shape', true.shape)
+    # heat map 
+     
+    t_lis = [0, n_time//2, n_time-1]
+    true = true.reshape(-1, args.n_balls, n_time, n_feat) 
+    pred = pred.reshape(-1, args.n_balls, n_time, n_feat)  
+    for i in range(len(t_lis)):
+        fig, axs = plt.subplots(1,2,figsize=(14,5)) 
+        p1 = axs[0].imshow(true[0,:,t_lis[i],0].reshape(args.H, args.W), cmap='seismic', interpolation='nearest')
+        p2 = axs[1].imshow(pred[0,:,t_lis[i],0].reshape(args.H, args.W), cmap='seismic', interpolation='nearest')
+        axs[0].set_title(f'Lead Time {(t_lis[i]+1)}hr\nTrue')
+        axs[1].set_title(f'Lead Time {(t_lis[i]+1)}hr\nLGODE') 
+        fig.colorbar(p1, ax=axs[0], shrink=0.7)
+        fig.colorbar(p2, ax=axs[1], shrink=0.7)
+        plt.savefig(f'./plot/{data_type}_heatmap_leadtime{(t_lis[i]+1)}.png') 
+        np.save(f'./plot/{data_type}_true{(t_lis[i]+1)}.npy', true[0,:,t_lis[i],0].reshape(args.H, args.W))
+        np.save(f'./plot/{data_type}_pred{(t_lis[i]+1)}.npy', pred[0,:,t_lis[i],0].reshape(args.H, args.W))
+
+    true = true.reshape(n_traj, n_time, n_feat) 
+    pred = pred.reshape(n_traj, n_time, n_feat)   
     # line plot
     fig, axs = plt.subplots(1,2,figsize=(4,2))
     idx = random.sample(range(n_traj), 50)
@@ -120,6 +140,7 @@ def plot_traj(true, pred, data_type='train'):
     axs[0].set_ylabel('Prediction')
     fig.tight_layout()
     plt.savefig(f'./plot/{data_type}_compare_scatter.png') 
+ 
 
 
 #####################################################################################################
@@ -160,20 +181,21 @@ if __name__ == '__main__':
 
     ############ Model Select
     # Create the model
-    obsrv_std = 0.01
+    obsrv_std = args.std
     obsrv_std = torch.Tensor([obsrv_std]).to(device)
     z0_prior = Normal(torch.Tensor([0.0]).to(device), torch.Tensor([1.]).to(device))
 
     model = create_LatentODE_model(args, input_dim, z0_prior, obsrv_std, device)
 
+     
 
     ##################################################################
-    # Load checkpoint and evaluate the model
+    # Load checkpoint and evaluate the model 
     if args.load is not None:
         ckpt_path = os.path.join(args.save, args.load)
         utils.get_ckpt_model(ckpt_path, model, device)
         #exit()
-
+ 
     ##################################################################
     # Training
 
@@ -221,15 +243,14 @@ if __name__ == '__main__':
     def train_epoch(epo):
         model.train()
         loss_list = []
-        mse_list = []
+        rmse_list = []
         likelihood_list = []
         kl_first_p_list = []
         std_first_p_list = []
 
         torch.cuda.empty_cache()
 
-        
-
+         
         for itr in tqdm(range(train_batch)):
 
             #utils.update_learning_rate(optimizer, decay_rate=0.999, lowest=args.lr / 10)
@@ -252,7 +273,7 @@ if __name__ == '__main__':
             true_y = batch_dict_decoder['data'].detach().cpu().numpy()
 
             #saving results
-            loss_list.append(loss), mse_list.append(mse), likelihood_list.append(
+            loss_list.append(loss), rmse_list.append(np.sqrt(mse)), likelihood_list.append(
                likelihood)
             kl_first_p_list.append(kl_first_p), std_first_p_list.append(std_first_p)
 
@@ -261,20 +282,16 @@ if __name__ == '__main__':
                 #train_res, loss
             torch.cuda.empty_cache()
 
-        scheduler.step()
+        scheduler.step() 
 
-
-        
-
-        message_train = 'Epoch {:04d} [Train seq (cond on sampled tp)] | Loss {:.6f} | MSE {:.6F} | Likelihood {:.6f} | KL fp {:.4f} | FP STD {:.4f}|'.format(
+        message_train = 'Epoch {:04d} [Train seq (cond on sampled tp)] | Loss {:.6f} | RMSE {:.6F} | Likelihood {:.6f} | KL fp {:.4f} | FP STD {:.4f}|'.format(
             epo,
-            np.mean(loss_list), np.mean(mse_list), np.mean(likelihood_list),
+            np.mean(loss_list),  np.mean(rmse_list), np.mean(likelihood_list),
             np.mean(kl_first_p_list), np.mean(std_first_p_list))
 
 
         return message_train, kl_coef, pred_y, true_y
-
-
+  
     for epo in range(1, args.niters + 1):
 
         message_train, kl_coef, train_pred_y, train_true_y = train_epoch(epo)
@@ -285,9 +302,9 @@ if __name__ == '__main__':
                                                 n_batches=test_batch, device=device,
                                                 n_traj_samples=3, kl_coef=kl_coef)
 
-            message_test = 'Epoch {:04d} [Test seq (cond on sampled tp)] | Loss {:.6f} | MSE {:.6F} | Likelihood {:.6f} | KL fp {:.4f} | FP STD {:.4f}|'.format(
+            message_test = 'Epoch {:04d} [Test seq (cond on sampled tp)] | Loss {:.6f} | RMSE {:.6F} | Likelihood {:.6f} | KL fp {:.4f} | FP STD {:.4f}|'.format(
                 epo,
-                test_res["loss"], test_res["mse"], test_res["likelihood"],
+                test_res["loss"], test_res["rmse"], test_res["likelihood"],
                 test_res["kl_first_p"], test_res["std_first_p"])
 
             logger.info("Experiment " + str(experimentID))

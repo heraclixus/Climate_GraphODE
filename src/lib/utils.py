@@ -187,6 +187,7 @@ def compute_loss_all_batches(model,
 	total["loss"] = 0
 	total["likelihood"] = 0
 	total["mse"] = 0
+	total["rmse"] = 0
 	total["kl_first_p"] = 0
 	total["std_first_p"] = 0
 
