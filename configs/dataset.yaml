@@ -8,9 +8,9 @@ weatherbench2:
 
 
 dataset:
-  root_dir: ../../data/geopotential_6.526deg_np/
-  variables: ["geopotential"]
-  out_variables: ["geopotential"]
+  root_dir: ../../data/2m_temperature_5.625deg_np/
+  variables: ["2m_temperature"]
+  out_variables: ["2m_temperature"]
   predict_range: 36
   hrs_each_step: 1 
   batch_size: 128

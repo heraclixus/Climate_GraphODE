@@ -9,17 +9,31 @@ from torchvision.transforms import transforms
 import torch
 from lib.metrics import lat_weighted_acc, lat_weighted_mse, lat_weighted_mse_val, lat_weighted_rmse
 from lib.utils import LinearWarmupCosineAnnealingLR
+from models.FNO import FNO2d
+
+"""
+calling signature for the internal model (net)
+- for FNO, no need for lead_times, variables, out_variables (for now)
+
+- forward(x,y, [loss], lat=self.lat)
+- evaluate(x, y, metrics=[lat_weighted_mse_val, lat_weighted_rmse, lat_weighted_acc], lat=self.lat,
+            clim=self.test_clim,
+            log_postfix=log_postfix,
+        )
+"""
+
+
 
 class GlobalForecastModule(LightningModule):
     """
     LightingForecast Module for Weather Forecast
     """
 
-    def __init__(self, model, lr, beta_1=0.9, beta_2=0.99, weight_decay=1e-5,
+    def __init__(self, net: FNO2d, lr, beta_1=0.9, beta_2=0.99, weight_decay=1e-5,
                  warmup_epochs=1000,max_epochs=2000, warmup_start_lr=1e-8, eta_min=1e-8):
         super().__init__()
         self.save_hyperparameters(logger=False, ignore=["model"])
-        self.net = model
+        self.net = net
     
     def set_denormalization(self, mean, std):
         self.denormalization = transforms.Normalize(mean, std)
@@ -39,11 +53,9 @@ class GlobalForecastModule(LightningModule):
 
     def training_step(self, batch: Any, batch_idx: int):
         x, y, lead_times, variables, out_variables = batch
-
-        # TODO: modify LGODE to agree with the calling forward() signature presented here. 
-        # the calling signature of LGODE is (initial_state, time_steps_to_predict, graph)
-        loss_dict, _ = self.net.forward(x, y, lead_times, variables, out_variables, [lat_weighted_mse], lat=self.lat)
-        loss_dict = loss_dict[0]
+        loss_dict, _ = self.net.forward(x, y, lat=self.lat)
+        print(loss_dict)
+        # loss_dict = loss_dict[0]
         for var in loss_dict.keys():
             self.log(
                 "train/" + var,
@@ -68,9 +80,7 @@ class GlobalForecastModule(LightningModule):
         all_loss_dicts = self.net.evaluate(
             x,
             y,
-            lead_times,
-            variables,
-            out_variables,
+            out_variables=out_variables,
             transform=self.denormalization,
             metrics=[lat_weighted_mse_val, lat_weighted_rmse, lat_weighted_acc],
             lat=self.lat,
@@ -106,10 +116,8 @@ class GlobalForecastModule(LightningModule):
         all_loss_dicts = self.net.evaluate(
             x,
             y,
-            lead_times,
-            variables,
-            out_variables,
             transform=self.denormalization,
+            out_variables=out_variables,
             metrics=[lat_weighted_mse_val, lat_weighted_rmse, lat_weighted_acc],
             lat=self.lat,
             clim=self.test_clim,

@@ -2,3 +2,5 @@
 logs
 experiments
 __pycache__ 
+*.txt
+checkpoints/

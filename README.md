@@ -95,6 +95,12 @@ cd src
 The Fourier Neural Operator and neural operator models in general can be used in this case.
 - [ ] Use FNO for one-step prediction. 
 
+Run FNO:
+
+```sh
+python src/train.py --config configs/forecast.yaml --trainer.devices=1 --trainer.max_epochs=500 --data.predict_range=72 --data.out_variables=['2m_temperature'] --data.batch_size=16 --data.variables=["2m_temperature"]
+```
+
 
 ### Step 4: Visualization 
 We need to produce some sensible visualizations for the output feature forecast over the surface of earth. 
