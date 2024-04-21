@@ -307,3 +307,110 @@ def lat_weighted_mean_bias(pred, y, transform, vars, lat, log_steps, log_days, c
     loss_dict["mean_bias"] = np.mean([loss_dict[k].cpu() for k in loss_dict.keys()])
 
     return loss_dict
+
+
+
+
+
+"""
+SFNO based loss functions 
+"""
+
+def l2loss_sphere(solver, prd, tar, relative=False, squared=True):
+    loss = solver.integrate_grid((prd - tar)**2, dimensionless=True).sum(dim=-1)
+    if relative:
+        loss = loss / solver.integrate_grid(tar**2, dimensionless=True).sum(dim=-1)
+    
+    if not squared:
+        loss = torch.sqrt(loss)
+    loss = loss.mean()
+
+    return loss
+
+def spectral_l2loss_sphere(solver, prd, tar, relative=False, squared=True):
+    # compute coefficients
+    coeffs = torch.view_as_real(solver.sht(prd - tar))
+    coeffs = coeffs[..., 0]**2 + coeffs[..., 1]**2
+    norm2 = coeffs[..., :, 0] + 2 * torch.sum(coeffs[..., :, 1:], dim=-1)
+    loss = torch.sum(norm2, dim=(-1,-2))
+
+    if relative:
+        tar_coeffs = torch.view_as_real(solver.sht(tar))
+        tar_coeffs = tar_coeffs[..., 0]**2 + tar_coeffs[..., 1]**2
+        tar_norm2 = tar_coeffs[..., :, 0] + 2 * torch.sum(tar_coeffs[..., :, 1:], dim=-1)
+        tar_norm2 = torch.sum(tar_norm2, dim=(-1,-2))
+        loss = loss / tar_norm2
+
+    if not squared:
+        loss = torch.sqrt(loss)
+    loss = loss.mean()
+
+    return loss
+
+def spectral_loss_sphere(solver, prd, tar, relative=False, squared=True):
+    # gradient weighting factors
+    lmax = solver.sht.lmax
+    ls = torch.arange(lmax).float()
+    spectral_weights = (ls*(ls + 1)).reshape(1, 1, -1, 1).to(prd.device)
+
+    # compute coefficients
+    coeffs = torch.view_as_real(solver.sht(prd - tar))
+    coeffs = coeffs[..., 0]**2 + coeffs[..., 1]**2
+    coeffs = spectral_weights * coeffs
+    norm2 = coeffs[..., :, 0] + 2 * torch.sum(coeffs[..., :, 1:], dim=-1)
+    loss = torch.sum(norm2, dim=(-1,-2))
+
+    if relative:
+        tar_coeffs = torch.view_as_real(solver.sht(tar))
+        tar_coeffs = tar_coeffs[..., 0]**2 + tar_coeffs[..., 1]**2
+        tar_coeffs = spectral_weights * tar_coeffs
+        tar_norm2 = tar_coeffs[..., :, 0] + 2 * torch.sum(tar_coeffs[..., :, 1:], dim=-1)
+        tar_norm2 = torch.sum(tar_norm2, dim=(-1,-2))
+        loss = loss / tar_norm2
+
+    if not squared:
+        loss = torch.sqrt(loss)
+    loss = loss.mean()
+
+    return loss
+
+def h1loss_sphere(solver, prd, tar, relative=False, squared=True):
+    # gradient weighting factors
+    lmax = solver.sht.lmax
+    ls = torch.arange(lmax).float()
+    spectral_weights = (ls*(ls + 1)).reshape(1, 1, -1, 1).to(prd.device)
+
+    # compute coefficients
+    coeffs = torch.view_as_real(solver.sht(prd - tar))
+    coeffs = coeffs[..., 0]**2 + coeffs[..., 1]**2
+    h1_coeffs = spectral_weights * coeffs
+    h1_norm2 = h1_coeffs[..., :, 0] + 2 * torch.sum(h1_coeffs[..., :, 1:], dim=-1)
+    l2_norm2 = coeffs[..., :, 0] + 2 * torch.sum(coeffs[..., :, 1:], dim=-1)
+    h1_loss = torch.sum(h1_norm2, dim=(-1,-2))
+    l2_loss = torch.sum(l2_norm2, dim=(-1,-2))
+
+     # strictly speaking this is not exactly h1 loss 
+    if not squared:
+        loss = torch.sqrt(h1_loss) + torch.sqrt(l2_loss)
+    else:
+        loss = h1_loss + l2_loss
+
+    if relative:
+        raise NotImplementedError("Relative H1 loss not implemented")
+
+    loss = loss.mean()
+
+
+    return loss
+
+def fluct_l2loss_sphere(solver, prd, tar, inp, relative=False, polar_opt=0):
+    # compute the weighting factor first
+    fluct = solver.integrate_grid((tar - inp)**2, dimensionless=True, polar_opt=polar_opt)
+    weight = fluct / torch.sum(fluct, dim=-1, keepdim=True)
+    # weight = weight.reshape(*weight.shape, 1, 1)
+    
+    loss = weight * solver.integrate_grid((prd - tar)**2, dimensionless=True, polar_opt=polar_opt)
+    if relative:
+        loss = loss / (weight * solver.integrate_grid(tar**2, dimensionless=True, polar_opt=polar_opt))
+    loss = torch.mean(loss)
+    return loss

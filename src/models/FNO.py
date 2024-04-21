@@ -7,7 +7,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from timeit import default_timer
 from lib.metrics import *
 
 torch.manual_seed(0)
@@ -106,7 +105,7 @@ class FNO2d(nn.Module):
         x = x.permute(0, 2, 3, 1) # (b, x, y, c)
 
         # print(f" loss_fn = {loss_fn}")
-        print(f" x = {x.shape}")
+        # print(f" x = {x.shape}")
         # grid = self.get_grid(x.shape, x.device)
 
         # print(f" grid = {grid.shape}")
@@ -118,7 +117,7 @@ class FNO2d(nn.Module):
 
         x = self.fc0(x)
 
-        print(f" x fc0 = {x.shape}")
+        # print(f" x fc0 = {x.shape}")
 
 
         x = x.permute(0, 3, 1, 2) # (b, c, x, y)
@@ -128,11 +127,11 @@ class FNO2d(nn.Module):
 
         x1 = self.conv0(x)
 
-        print(f" conv1 = {x1.shape}")
+        # print(f" conv1 = {x1.shape}")
 
         x2 = self.w0(x)
 
-        print(f" w0 = {x2.shape}")
+        # print(f" w0 = {x2.shape}")
 
 
         x = x1 + x2

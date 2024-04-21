@@ -91,17 +91,43 @@ cd src
     
 
 
-### Step ab: Incorporate the FNO model to use the setup 
+### Step 2b: Incorporate the FNO model to use the setup 
 The Fourier Neural Operator and neural operator models in general can be used in this case.
-- [ ] Use FNO for one-step prediction. 
+- [x] Use FNO for one-step prediction. 
 
 Run FNO:
 
+Suggestion on dependency: use the dependency from climaX (as the `torch.fft.rfft` can run into trouble with newer versions of pytorch, same applies to `torch-lightning`). 
+
 ```sh
-python src/train.py --config configs/forecast.yaml --trainer.devices=1 --trainer.max_epochs=500 --data.predict_range=72 --data.out_variables=['2m_temperature'] --data.batch_size=16 --data.variables=["2m_temperature"]
+python src/train.py --config configs/forecast_fno.yaml --trainer.devices=1 --trainer.max_epochs=500 --data.predict_range=72 --data.out_variables=['2m_temperature'] --data.batch_size=16 --data.variables=["2m_temperature"]
+```
+
+### Step 2c: Incorporate the SFNO model to use the setup 
+
+For each new model, to make torch-lightning work, one way is to have one yaml file for each different model, which is the curreny implementation.
+
+Dependency suggestion: build `torch_harmonics` package from source rather than using `pip`, also install `tensorly-torch` and `tensorly` as dependency. 
+
+- [x] check the yaml file for tuples and list for hyperparameters
+- [x] use SFNO for one-step prediction.
+
+Run SFNO:
+
+```sh
+python src/train.py --config configs/forecast_sfno.yaml --trainer.devices=[5] --trainer.max_epochs=500 --data.predict_range=72 --data.out_variables=['2m_temperature'] --data.batch_size=16 --data.variables=["2m_temperature"]
 ```
 
 
-### Step 4: Visualization 
+### Step 2d: PDE-Refiner-based Training
+
+
+### Step 3: Add more featuers ERA5 
+
+
+
+### Step 4: Experiment: Longer Time Horizons 
+
+### Step 5: Visualization 
 We need to produce some sensible visualizations for the output feature forecast over the surface of earth. 
 - [ ] Finish visualization scripts. 

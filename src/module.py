@@ -9,7 +9,9 @@ from torchvision.transforms import transforms
 import torch
 from lib.metrics import lat_weighted_acc, lat_weighted_mse, lat_weighted_mse_val, lat_weighted_rmse
 from lib.utils import LinearWarmupCosineAnnealingLR
+from models.SFNO import SFNOWrapper
 from models.FNO import FNO2d
+
 
 """
 calling signature for the internal model (net)
@@ -29,10 +31,11 @@ class GlobalForecastModule(LightningModule):
     LightingForecast Module for Weather Forecast
     """
 
-    def __init__(self, net: FNO2d, lr, beta_1=0.9, beta_2=0.99, weight_decay=1e-5,
+    def __init__(self, net, 
+                 lr, beta_1=0.9, beta_2=0.99, weight_decay=1e-5,
                  warmup_epochs=1000,max_epochs=2000, warmup_start_lr=1e-8, eta_min=1e-8):
         super().__init__()
-        self.save_hyperparameters(logger=False, ignore=["model"])
+        self.save_hyperparameters(logger=False, ignore=["net"]) # temporary ignore
         self.net = net
     
     def set_denormalization(self, mean, std):
