@@ -314,20 +314,39 @@ def lat_weighted_mean_bias(pred, y, transform, vars, lat, log_steps, log_days, c
 
 """
 SFNO based loss functions 
+requires a solver object to integrate the grid
 """
 
-def l2loss_sphere(solver, prd, tar, relative=False, squared=True):
-    loss = solver.integrate_grid((prd - tar)**2, dimensionless=True).sum(dim=-1)
+# adapted to fulfill the purpose of ERA5
+def l2loss_sphere(solver, prd, tar, vars, lat, mask=None, relative=False, squared=True):
+
+    loss = solver.integrate_grid((prd - tar)**2, dimensionless=True)
     if relative:
-        loss = loss / solver.integrate_grid(tar**2, dimensionless=True).sum(dim=-1)
-    
+        loss = loss / solver.integrate_grid(tar**2, dimensionless=True)
     if not squared:
         loss = torch.sqrt(loss)
-    loss = loss.mean()
+    
+    loss_dict = {}
 
-    return loss
+    with torch.no_grad():
+        for i, var in enumerate(vars):
+            if mask is not None: # want to have loss of shape (B, D) for d the number of vars (features)
+                loss_dict[var] = (loss[:, i] * mask).sum() / mask.sum()
+            else:
+                loss_dict[var] = (loss[:, i]).mean()
 
-def spectral_l2loss_sphere(solver, prd, tar, relative=False, squared=True):
+    # loss = (N, 1)
+    # w_lat = (H, )
+    if mask is not None:
+        loss_dict["loss"] = (loss * mask).sum() / mask.sum()
+    else:
+        loss_dict["loss"] = loss.mean()
+
+    return loss_dict
+
+
+# adapted to fulfill purpose of ERA5 
+def spectral_l2loss_sphere(solver, prd, tar, vars, lat, mask=None, relative=False, squared=True):
     # compute coefficients
     coeffs = torch.view_as_real(solver.sht(prd - tar))
     coeffs = coeffs[..., 0]**2 + coeffs[..., 1]**2
@@ -343,11 +362,28 @@ def spectral_l2loss_sphere(solver, prd, tar, relative=False, squared=True):
 
     if not squared:
         loss = torch.sqrt(loss)
-    loss = loss.mean()
+    loss_dict = {}
 
-    return loss
+    with torch.no_grad():
+        for i, var in enumerate(vars):
+            if mask is not None: # want to have loss of shape (B, D) for d the number of vars (features)
+                loss_dict[var] = (loss[:, i] * mask).sum() / mask.sum()
+            else:
+                loss_dict[var] = (loss[:, i]).mean()
 
-def spectral_loss_sphere(solver, prd, tar, relative=False, squared=True):
+    # loss = (N, 1)
+    # w_lat = (H, )
+    if mask is not None:
+        loss_dict["loss"] = (loss * mask).sum() / mask.sum()
+    else:
+        loss_dict["loss"] = loss.mean()
+
+    return loss_dict
+
+
+
+# adapted to fulfill ERA5 purpose 
+def spectral_loss_sphere(solver, prd, tar, vars, lat, mask=None, relative=False, squared=True):
     # gradient weighting factors
     lmax = solver.sht.lmax
     ls = torch.arange(lmax).float()
@@ -370,11 +406,27 @@ def spectral_loss_sphere(solver, prd, tar, relative=False, squared=True):
 
     if not squared:
         loss = torch.sqrt(loss)
-    loss = loss.mean()
+    loss_dict = {}
 
-    return loss
+    with torch.no_grad():
+        for i, var in enumerate(vars):
+            if mask is not None: # want to have loss of shape (B, D) for d the number of vars (features)
+                loss_dict[var] = (loss[:, i] * mask).sum() / mask.sum()
+            else:
+                loss_dict[var] = (loss[:, i]).mean()
 
-def h1loss_sphere(solver, prd, tar, relative=False, squared=True):
+    # loss = (N, 1)
+    # w_lat = (H, )
+    if mask is not None:
+        loss_dict["loss"] = (loss * mask).sum() / mask.sum()
+    else:
+        loss_dict["loss"] = loss.mean()
+
+    return loss_dict
+
+
+
+def h1loss_sphere(solver, prd, tar, vars, lat, mask=None, relative=False, squared=True):
     # gradient weighting factors
     lmax = solver.sht.lmax
     ls = torch.arange(lmax).float()
@@ -398,12 +450,26 @@ def h1loss_sphere(solver, prd, tar, relative=False, squared=True):
     if relative:
         raise NotImplementedError("Relative H1 loss not implemented")
 
-    loss = loss.mean()
+    loss_dict = {}
+
+    with torch.no_grad():
+        for i, var in enumerate(vars):
+            if mask is not None: # want to have loss of shape (B, D) for d the number of vars (features)
+                loss_dict[var] = (loss[:, i] * mask).sum() / mask.sum()
+            else:
+                loss_dict[var] = (loss[:, i]).mean()
+
+    # loss = (N, 1)
+    # w_lat = (H, )
+    if mask is not None:
+        loss_dict["loss"] = (loss * mask).sum() / mask.sum()
+    else:
+        loss_dict["loss"] = loss.mean()
+
+    return loss_dict
 
 
-    return loss
-
-def fluct_l2loss_sphere(solver, prd, tar, inp, relative=False, polar_opt=0):
+def fluct_l2loss_sphere(solver, prd, tar, inp, vars, lat, mask=None, relative=False, polar_opt=0):
     # compute the weighting factor first
     fluct = solver.integrate_grid((tar - inp)**2, dimensionless=True, polar_opt=polar_opt)
     weight = fluct / torch.sum(fluct, dim=-1, keepdim=True)
@@ -412,5 +478,20 @@ def fluct_l2loss_sphere(solver, prd, tar, inp, relative=False, polar_opt=0):
     loss = weight * solver.integrate_grid((prd - tar)**2, dimensionless=True, polar_opt=polar_opt)
     if relative:
         loss = loss / (weight * solver.integrate_grid(tar**2, dimensionless=True, polar_opt=polar_opt))
-    loss = torch.mean(loss)
-    return loss
+    loss_dict = {}
+
+    with torch.no_grad():
+        for i, var in enumerate(vars):
+            if mask is not None: # want to have loss of shape (B, D) for d the number of vars (features)
+                loss_dict[var] = (loss[:, i] * mask).sum() / mask.sum()
+            else:
+                loss_dict[var] = (loss[:, i]).mean()
+
+    # loss = (N, 1)
+    # w_lat = (H, )
+    if mask is not None:
+        loss_dict["loss"] = (loss * mask).sum() / mask.sum()
+    else:
+        loss_dict["loss"] = loss.mean()
+
+    return loss_dict

@@ -119,6 +119,49 @@ python src/train.py --config configs/forecast_sfno.yaml --trainer.devices=[5] --
 ```
 
 
+### Preliminary results: 
+
+1. Base setting: 
+- Short range (72 hours) weather forecast
+- 1 feature (`2m_temperature`)
+- 1979-2016: training
+- 2017 validation, 2018 test. 
+- same MSE based loss for both models. 
+
+SFNO 
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃            Test metric            ┃           DataLoader 0            ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│             test/acc              │         0.86073899269104          │
+│  test/acc_2m_temperature_3_days   │         0.86073899269104          │
+│            test/w_mse             │       0.015408281236886978        │
+│ test/w_mse_2m_temperature_3_days  │       0.015408281236886978        │
+│            test/w_rmse            │         2.624769449234009         │
+│ test/w_rmse_2m_temperature_3_days │         2.624769449234009         │
+└───────────────────────────────────┴───────────────────────────────────┘
+```
+
+FNO
+
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃            Test metric            ┃           DataLoader 0            ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│             test/acc              │        0.8777772188186646         │
+│  test/acc_2m_temperature_3_days   │        0.8777772188186646         │
+│            test/w_mse             │       0.013594500720500946        │
+│ test/w_mse_2m_temperature_3_days  │       0.013594500720500946        │
+│            test/w_rmse            │        2.4645509719848633         │
+│ test/w_rmse_2m_temperature_3_days │        2.4645509719848633         │
+└───────────────────────────────────┴───────────────────────────────────┘
+```
+
+2. SFNO training with spherical loss 
+
+
+
+
 ### Step 2d: PDE-Refiner-based Training
 
 
