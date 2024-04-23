@@ -64,7 +64,7 @@ class SFNOWrapper(nn.Module):
     def forward(self, x, y, lat):
         y_pred = self.sfno_model(x)  # (b,c,h,w)
         # return lat_weighted_mse(y_pred, y, vars=self.vars, lat=lat), y_pred 
-        return l2loss_sphere(solver=self.sw_solver, prd=y_pred, tar=y, vars=self.vars, lat=lat), y_pred
+        return y_pred
      
     # inference use a different type of metrics 
     def evaluate(self, x, y, out_variables, transform, metrics, lat, clim, log_postfix):
