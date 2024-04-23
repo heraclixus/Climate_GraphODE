@@ -87,7 +87,7 @@ cd src
   - Sol 2: Use the original graph topology and assign the observed time series as the node attributes. Suppose we apply a linear transformation to all variables at each observed time step. Each node has a feature matrix of size $d \times T_{\text{obs}}$ where $d$ is the hidden dimension and $T_{\text{obs}}$ is the number of time steps. We then apply a function that aggregates vectors along the temporal dimension to transform the feature matrix to a vector of size $d$. Such a function consists of attention mechanisms that compute the contribution of individual timestamp to the aggregated vector. Encoding spatial interaction can be captured by either GCN or GAT layers after the aggregation over temporal dimension.    
 - **Initial Condition Error**: In the prediction, the initial condition's distribution has a much smaller variance than ground truth.
   - Sol 1: Normalize each individual temporal graph sequence to have zero-mean and a fixed standard deviation at the initial time step. Rescale after making prediction. 
-  - Sol 2: Modify the prior distribution to incorporate the larger variance. The ELBO loss  penalizes large KL-divergence between the distribution of hidden initial condition and the prior, which is a normal distribution.  
+  - Sol 2: Modify the prior distribution to incorporate the mean and standard deviation of the initial condition. The ELBO loss  penalizes large KL-divergence between the distribution of hidden initial condition and the prior, which is a normal distribution.  
     
 
 

@@ -2,3 +2,5 @@
 logs
 experiments
 __pycache__ 
+*.npy
+plot_1
