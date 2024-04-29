@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from lib.metrics import *
+from scripts.visualize_fourier_modes import *
 
 torch.manual_seed(0)
 np.random.seed(0)
@@ -104,38 +105,15 @@ class FNO2d(nn.Module):
     def forward(self, x, y, lat):
         x = x.permute(0, 2, 3, 1) # (b, x, y, c)
 
-        # print(f" loss_fn = {loss_fn}")
-        # print(f" x = {x.shape}")
         # grid = self.get_grid(x.shape, x.device)
-
-        # print(f" grid = {grid.shape}")
-
-
         # x = torch.cat((x, grid), dim=-1)
-
-        # print(f" x and grid = {x.shape}")
-
         x = self.fc0(x)
-
-        # print(f" x fc0 = {x.shape}")
-
-
         x = x.permute(0, 3, 1, 2) # (b, c, x, y)
         # x = F.pad(x, [0,self.padding, 0,self.padding])
 
-        # print(f" x padd = {x.shape}")
-
         x1 = self.conv0(x)
-
-        # print(f" conv1 = {x1.shape}")
-
         x2 = self.w0(x)
-
-        # print(f" w0 = {x2.shape}")
-
-
         x = x1 + x2
-
 
         x = F.gelu(x)
 
@@ -174,3 +152,9 @@ class FNO2d(nn.Module):
     def evaluate(self, x, y, out_variables, transform, metrics, lat, clim, log_postfix):
         _, preds = self.forward(x, y, lat=lat)
         return [m(preds, y, transform, out_variables, lat, clim, log_postfix) for m in metrics]
+    
+
+    # visualize spectrum after fft 
+    def visualize_spectrum(self, x, y,lat, out_variables, batch_id):
+        _, preds = self.foward(x, y, lat=lat)
+        one_step_plot_spectrum(preds, y, vars=out_variables, model_name="FNO", batch_id=batch_id)

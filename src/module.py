@@ -25,7 +25,6 @@ calling signature for the internal model (net)
 """
 
 
-
 class GlobalForecastModule(LightningModule):
     """
     LightingForecast Module for Weather Forecast
@@ -126,6 +125,9 @@ class GlobalForecastModule(LightningModule):
             clim=self.test_clim,
             log_postfix=log_postfix,
         )
+
+        # new 4/29: add visualization
+        self.net.visualize_spectrum(x, y, self.lat, out_variables, batch_idx)
 
         loss_dict = {}
         for d in all_loss_dicts:

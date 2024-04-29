@@ -159,8 +159,20 @@ FNO
 
 2. SFNO training with spherical loss 
 
+with `l2loss_sphere` on training and same L2 based loss on test; negligible difference compared to L2 loss only. 
 
-
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃            Test metric            ┃           DataLoader 0            ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│             test/acc              │         0.860672652721405         │
+│  test/acc_2m_temperature_3_days   │         0.860672652721405         │
+│            test/w_mse             │       0.015412815846502781        │
+│ test/w_mse_2m_temperature_3_days  │       0.015412815846502781        │
+│            test/w_rmse            │        2.6244916915893555         │
+│ test/w_rmse_2m_temperature_3_days │        2.6244916915893555         │
+└───────────────────────────────────┴───────────────────────────────────┘
+```
 
 ### Step 2d: PDE-Refiner-based Training
 
@@ -168,8 +180,10 @@ FNO
 ### Step 3: Add more featuers ERA5 
 
 
+### Step 4: Experiment: Longer Time Horizons
 
-### Step 4: Experiment: Longer Time Horizons 
+
+
 
 ### Step 5: Visualization 
 We need to produce some sensible visualizations for the output feature forecast over the surface of earth. 
