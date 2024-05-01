@@ -2,5 +2,8 @@
 logs
 experiments
 __pycache__ 
-*.npy
+*.txt
+checkpoints/
+plot
 plot_1
+data_preprocess.sh

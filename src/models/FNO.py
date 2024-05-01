@@ -7,8 +7,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from timeit import default_timer
-from lib.utils import UnitGaussianNormalizer, LpLoss
+from lib.metrics import *
 
 torch.manual_seed(0)
 np.random.seed(0)
@@ -42,7 +41,14 @@ class SpectralConv2d(nn.Module):
     def forward(self, x):
         batchsize = x.shape[0]
         #Compute Fourier coeffcients up to factor of e^(- something constant)
-        x_ft = torch.fft.rfft2(x)
+        # torch 1.12: convert rfft result into complex64 to agree with weights 
+        x_ft = torch.fft.rfft2(x).type(torch.complex64)
+
+        # print(x_ft.shape) 
+        # print(x_ft.dtype)
+        # print(self.weights1.dtype)
+        # print(self.weights2.dtype)
+
 
         # Multiply relevant Fourier modes
         out_ft = torch.zeros(batchsize, self.out_channels,  x.size(-2), x.size(-1)//2 + 1, dtype=torch.cfloat, device=x.device)
@@ -56,7 +62,7 @@ class SpectralConv2d(nn.Module):
         return x
 
 class FNO2d(nn.Module):
-    def __init__(self, modes1, modes2,  width):
+    def __init__(self, modes1, modes2, vars, width):
         super(FNO2d, self).__init__()
 
         """
@@ -75,8 +81,9 @@ class FNO2d(nn.Module):
         self.modes1 = modes1
         self.modes2 = modes2
         self.width = width
+        self.vars = vars
         self.padding = 9 # pad the domain if input is non-periodic
-        self.fc0 = nn.Linear(3, self.width) # input channel is 3: (a(x, y), x, y)
+        self.fc0 = nn.Linear(len(vars), self.width)
 
         self.conv0 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
         self.conv1 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
@@ -88,22 +95,48 @@ class FNO2d(nn.Module):
         self.w3 = nn.Conv2d(self.width, self.width, 1)
 
         self.fc1 = nn.Linear(self.width, 128)
-        self.fc2 = nn.Linear(128, 1)
+        self.fc2 = nn.Linear(128, len(vars))
 
 
     """
     change to agree with the signature of ClimaX 
     """
-    def forward(self, x, y, loss_fn, lat):
-        grid = self.get_grid(x.shape, x.device)
-        x = torch.cat((x, grid), dim=-1)
+    def forward(self, x, y, lat):
+        x = x.permute(0, 2, 3, 1) # (b, x, y, c)
+
+        # print(f" loss_fn = {loss_fn}")
+        # print(f" x = {x.shape}")
+        # grid = self.get_grid(x.shape, x.device)
+
+        # print(f" grid = {grid.shape}")
+
+
+        # x = torch.cat((x, grid), dim=-1)
+
+        # print(f" x and grid = {x.shape}")
+
         x = self.fc0(x)
-        x = x.permute(0, 3, 1, 2)
-        x = F.pad(x, [0,self.padding, 0,self.padding])
+
+        # print(f" x fc0 = {x.shape}")
+
+
+        x = x.permute(0, 3, 1, 2) # (b, c, x, y)
+        # x = F.pad(x, [0,self.padding, 0,self.padding])
+
+        # print(f" x padd = {x.shape}")
 
         x1 = self.conv0(x)
+
+        # print(f" conv1 = {x1.shape}")
+
         x2 = self.w0(x)
+
+        # print(f" w0 = {x2.shape}")
+
+
         x = x1 + x2
+
+
         x = F.gelu(x)
 
         x1 = self.conv1(x)
@@ -120,12 +153,15 @@ class FNO2d(nn.Module):
         x2 = self.w3(x)
         x = x1 + x2
 
-        x = x[..., :-self.padding, :-self.padding]
+        # x = x[..., :-self.padding, :-self.padding]
         x = x.permute(0, 2, 3, 1)
         x = self.fc1(x)
         x = F.gelu(x)
         y_pred = self.fc2(x)
-        return loss_fn(y_pred, y, lat), y_pred
+        y_pred = y_pred.permute(0, 3, 1, 2) # (b, c, x, y)
+
+        #return lat_weighted_mse(y_pred, y, vars=self.vars, lat=lat), y_pred
+        return y_pred
     
     def get_grid(self, shape, device):
         batchsize, size_x, size_y = shape[0], shape[1], shape[2]
@@ -134,3 +170,8 @@ class FNO2d(nn.Module):
         gridy = torch.tensor(np.linspace(0, 1, size_y), dtype=torch.float)
         gridy = gridy.reshape(1, 1, size_y, 1).repeat([batchsize, size_x, 1, 1])
         return torch.cat((gridx, gridy), dim=-1).to(device)
+    
+
+    def evaluate(self, x, y, out_variables, transform, metrics, lat, clim, log_postfix):
+        _, preds = self.forward(x, y, lat=lat)
+        return [m(preds, y, transform, out_variables, lat, clim, log_postfix) for m in metrics]

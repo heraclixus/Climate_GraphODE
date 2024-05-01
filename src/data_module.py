@@ -1,7 +1,6 @@
 """
 adapt from https://github.com/microsoft/ClimaX/blob/main/src/climax/global_forecast/datamodule.py
-"""
-
+""" 
 
 import os, yaml 
 from typing import Dict, Optional
@@ -11,7 +10,7 @@ import torchdata.datapipes as dp
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, IterableDataset
 from torchvision.transforms import transforms
-from dataset import Forecast, IndividualForecastDataIter, NpyReader, ShuffleIterableDataset
+from scripts.dataset import Forecast, IndividualForecastDataIter, NpyReader, ShuffleIterableDataset
 
 
 

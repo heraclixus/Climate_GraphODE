@@ -13,8 +13,8 @@ __Goal: model Climate Dynamics with Graph Neural Network (GNN)-based Neural diff
 
 obtain the dataset by wget: 
 
-- For geopotential only: 
-```
+ 
+``` 
 cd data
 wget "https://dataserv.ub.tum.de/s/m1524895/download?path=%2F5.625deg%2Fgeopotential_500&files=geopotential_500_5.625deg.zip" -O geopotential_500_5.625deg.zip
 mkdir geopotential_5.625deg
@@ -24,8 +24,7 @@ cd src/scripts
 python data_utils.py 
 ```
 to generate npy datasets in `data/geopotential_500_5.625deg_np/` 
-
-
+ 
 - complete data, all the features:
 ```
 cd data
@@ -91,11 +90,126 @@ cd src
     
 
 
-### Step ab: Incorporate the FNO model to use the setup 
+### Step 2b: Incorporate the FNO model to use the setup 
 The Fourier Neural Operator and neural operator models in general can be used in this case.
-- [ ] Use FNO for one-step prediction. 
+- [x] Use FNO for one-step prediction. 
+
+Run FNO:
+
+Suggestion on dependency: use the dependency from climaX (as the `torch.fft.rfft` can run into trouble with newer versions of pytorch, same applies to `torch-lightning`). 
+
+```sh
+python3 src/train.py --config configs/forecast_fno.yaml --trainer.devices=1 --trainer.max_epochs=500 --data.predict_range=72 --data.out_variables=["2m_temperature"] --data.batch_size=16 --data.variables=["2m_temperature"]
+```
 
 
-### Step 4: Visualization 
+### Step 2c: Incorporate the SFNO model to use the setup 
+
+For each new model, to make torch-lightning work, one way is to have one yaml file for each different model, which is the curreny implementation.
+
+Dependency suggestion: build `torch_harmonics` package from source rather than using `pip`, also install `tensorly-torch` and `tensorly` as dependency. 
+
+- [x] check the yaml file for tuples and list for hyperparameters
+- [x] use SFNO for one-step prediction.
+
+Run SFNO:
+
+```sh
+python3 src/train.py --config configs/forecast_sfno.yaml --trainer.devices=1 --trainer.max_epochs=500 --data.predict_range=72 --data.out_variables=["2m_temperature"] --data.batch_size=128 --data.variables=["2m_temperature"]
+```
+
+geopotential
+```sh
+python3 src/train.py --config configs/forecast_sfno.yaml --trainer.devices=1 --trainer.max_epochs=500 --data.predict_range=72 --data.out_variables=["geopotential"] --data.batch_size=16 --data.variables=["geopotential"]
+```
+
+### Preliminary results: 
+
+1. Base setting: 
+- Short range (72 hours) weather forecast
+- 1 feature (`2m_temperature`)
+- 1979-2016: training
+- 2017 validation, 2018 test. 
+- same MSE based loss for both models. 
+
+SFNO 
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃            Test metric            ┃           DataLoader 0            ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│             test/acc              │         0.86073899269104          │
+│  test/acc_2m_temperature_3_days   │         0.86073899269104          │
+│            test/w_mse             │       0.015408281236886978        │
+│ test/w_mse_2m_temperature_3_days  │       0.015408281236886978        │
+│            test/w_rmse            │         2.624769449234009         │
+│ test/w_rmse_2m_temperature_3_days │         2.624769449234009         │
+└───────────────────────────────────┴───────────────────────────────────┘
+```
+
+FNO
+
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃            Test metric            ┃           DataLoader 0            ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│             test/acc              │        0.8777772188186646         │
+│  test/acc_2m_temperature_3_days   │        0.8777772188186646         │
+│            test/w_mse             │       0.013594500720500946        │
+│ test/w_mse_2m_temperature_3_days  │       0.013594500720500946        │
+│            test/w_rmse            │        2.4645509719848633         │
+│ test/w_rmse_2m_temperature_3_days │        2.4645509719848633         │
+└───────────────────────────────────┴───────────────────────────────────┘
+```
+
+2. SFNO training with spherical loss 
+
+
+3. SFNO training with spherical loss and PDE-refiner 
+- Short range (72 hours) weather forecast
+- 1 feature (`geopotential`)
+- 1979-2016: training
+- 2017 validation, 2018 test. 
+- same MSE based loss for both models. 
+
+SFNO 
+
+Trained after 7 epochs
+ 
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           Test metric           ┃          DataLoader 0           ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│            test/acc             │       0.10115499049425125       │
+│  test/acc_geopotential_3_days   │       0.10115499049425125       │
+│           test/w_mse            │       0.38705867528915405       │
+│ test/w_mse_geopotential_3_days  │       0.38705867528915405       │
+│           test/w_rmse           │        2084.53271484375         │
+│ test/w_rmse_geopotential_3_days │        2084.53271484375         │
+└─────────────────────────────────┴─────────────────────────────────┘
+```
+
+2m_temperature
+Trained after 5 epochs
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃            Test metric            ┃           DataLoader 0            ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│             test/acc              │        0.08266861736774445        │
+│  test/acc_2m_temperature_3_days   │        0.08266861736774445        │
+│            test/w_mse             │        0.3225284814834595         │
+│ test/w_mse_2m_temperature_3_days  │        0.3225284814834595         │
+│            test/w_rmse            │         12.00672721862793         │
+│ test/w_rmse_2m_temperature_3_days │         12.00672721862793         │
+└───────────────────────────────────┴───────────────────────────────────┘
+
+### Step 2d: PDE-Refiner-based Training
+
+
+### Step 3: Add more featuers ERA5 
+
+
+
+### Step 4: Experiment: Longer Time Horizons 
+
+### Step 5: Visualization 
 We need to produce some sensible visualizations for the output feature forecast over the surface of earth. 
 - [ ] Finish visualization scripts. 

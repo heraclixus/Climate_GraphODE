@@ -160,13 +160,14 @@ variables = geopotential
 """
 def nc2np(path, variables, years, save_dir, partition, num_shards_per_year):
     os.makedirs(os.path.join(save_dir, partition), exist_ok=True)
-
+     
     if partition == "train":
         normalize_mean = {}
         normalize_std = {}
     climatology = {}
 
-    constants = xr.open_mfdataset(os.path.join(path, "constants.nc"), combine="by_coords", parallel=True)
+    
+    constants = xr.open_mfdataset(os.path.join(path, "constants/*.nc"), combine="by_coords" )
     constant_fields = ["land_sea_mask", "orography", "lattitude"]
     constant_values = {}
     for f in constant_fields:
@@ -179,15 +180,14 @@ def nc2np(path, variables, years, save_dir, partition, num_shards_per_year):
 
     for year in tqdm(years):
         np_vars = {}
-
         # constant variables
         for f in constant_fields:
             np_vars[f] = constant_values[f]
-
         # non-constant fields
         for var in variables:
-            ps = glob.glob(os.path.join(path, var, f"*{year}*.nc"))
-            ds = xr.open_mfdataset(ps, combine="by_coords", parallel=True)  # dataset for a single variable
+            ps = glob.glob(os.path.join(path, f"{var}_5.625deg", f"*{year}*.nc"))
+
+            ds = xr.open_mfdataset(ps, combine="by_coords" )  # dataset for a single variable
             code = NAME_TO_VAR[var]
 
             if len(ds[code].shape) == 3:  # surface level variables
@@ -387,27 +387,33 @@ def nc2np_geopotential(path, years, save_dir, partition, num_shards_per_year):
 
 
 @click.command()
-@click.option("--root_dir", type=str, default="../../data/geopotential_5.625deg")
-@click.option("--save_dir", type=str, default="../../data/geopotential_6.526deg_np")
+@click.option("--root_dir", type=str, default="/home/dingy6/Climate_GraphODE/data/")
+@click.option("--save_dir", type=str, default="/home/dingy6/Climate_GraphODE/data/data/2m_temperature_5.625deg_np")
 @click.option(
     "--variables",
     "-v",
     type=click.STRING,
     multiple=True,
     default=[
-        "2m_temperature",
-        "10m_u_component_of_wind",
-        "10m_v_component_of_wind",
-        "toa_incident_solar_radiation",
-        "total_precipitation",
-        "geopotential",
-        "u_component_of_wind",
-        "v_component_of_wind",
-        "temperature",
-        "relative_humidity",
-        "specific_humidity",
+        "2m_temperature"
     ],
 )
+
+# default=[
+#         "2m_temperature",
+#         "10m_u_component_of_wind",
+#         "10m_v_component_of_wind",
+#         "toa_incident_solar_radiation",
+#         "total_precipitation",
+#         "geopotential",
+#         "u_component_of_wind",
+#         "v_component_of_wind",
+#         "temperature",
+#         "relative_humidity",
+#         "specific_humidity",
+#     ],
+
+
 @click.option("--start_train_year", type=int, default=1979)
 @click.option("--start_val_year", type=int, default=2016)
 @click.option("--start_test_year", type=int, default=2017)
@@ -431,19 +437,19 @@ def main(
     print(f"train_years = {train_years}")
     print(f"val_years = {val_years}")
     print(f"test_years = {test_years}")
-
+    # print(variables)
+ 
     os.makedirs(save_dir, exist_ok=True)
 
-    # nc2np(root_dir, variables, train_years, save_dir, "train", num_shards)
-    # nc2np(root_dir, variables, val_years, save_dir, "val", num_shards)
-    # nc2np(root_dir, variables, test_years, save_dir, "test", num_shards)
+    nc2np(root_dir, variables, train_years, save_dir, "train", num_shards)
+    nc2np(root_dir, variables, val_years, save_dir, "val", num_shards)
+    nc2np(root_dir, variables, test_years, save_dir, "test", num_shards)
 
-    nc2np_geopotential(root_dir, train_years, save_dir, "train", num_shards)
-    nc2np_geopotential(root_dir, val_years, save_dir, "val", num_shards)
-    nc2np_geopotential(root_dir, test_years, save_dir, "test", num_shards)
-
+    # nc2np_geopotential(root_dir, train_years, save_dir, "train", num_shards)
+    # nc2np_geopotential(root_dir, val_years, save_dir, "val", num_shards)
+    # nc2np_geopotential(root_dir, test_years, save_dir, "test", num_shards)
     # save lat and lon data
-    ps = glob.glob(os.path.join(root_dir, f"*{train_years[0]}*.nc"))
+    ps = glob.glob(os.path.join(root_dir, f"{variables[0]}_5.625deg", f"*{train_years[0]}*.nc"))
     x = xr.open_mfdataset(ps[0], parallel=True)
     lat = x["lat"].to_numpy()
     lon = x["lon"].to_numpy()
