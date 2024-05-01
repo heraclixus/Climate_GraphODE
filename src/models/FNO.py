@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from lib.metrics import *
+from scripts.visualize_fourier_modes import *
 
 torch.manual_seed(0)
 np.random.seed(0)
@@ -83,7 +84,7 @@ class FNO2d(nn.Module):
         self.width = width
         self.vars = vars
         self.padding = 9 # pad the domain if input is non-periodic
-        self.fc0 = nn.Linear(len(vars), self.width)
+        self.fc0 = nn.Linear(len(vars)*2, self.width)
 
         self.conv0 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
         self.conv1 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
@@ -175,3 +176,8 @@ class FNO2d(nn.Module):
     def evaluate(self, x, y, out_variables, transform, metrics, lat, clim, log_postfix):
         _, preds = self.forward(x, y, lat=lat)
         return [m(preds, y, transform, out_variables, lat, clim, log_postfix) for m in metrics]
+
+    # visualize spectrum after fft 
+    def visualize_spectrum(self, x, y,lat, out_variables, batch_id):
+        _, preds = self.forward(x, y, lat=lat)
+        one_step_plot_spectrum(preds, y, vars=out_variables, model_name="SFNO", batch_id=batch_id)

@@ -76,13 +76,14 @@ class Forecast(IterableDataset):
 
     def __iter__(self):
         for data, variables, out_variables in self.dataset:
+             
             x = np.concatenate([data[k].astype(np.float32) for k in data.keys()], axis=1)
             x = torch.from_numpy(x)
             y = np.concatenate([data[k].astype(np.float32) for k in out_variables], axis=1)
             y = torch.from_numpy(y)
-
+            #print('\n\n', x.shape, y.shape, '\n\n')
             inputs = x[: -self.max_predict_range]  # N, C, H, W
-
+            #print('\n\n', inputs.shape, '\n\n')
             if self.random_lead_time:
                 predict_ranges = torch.randint(low=1, high=self.max_predict_range, size=(inputs.shape[0],))
             else:
@@ -91,6 +92,10 @@ class Forecast(IterableDataset):
             lead_times = lead_times.to(inputs.dtype)
             output_ids = torch.arange(inputs.shape[0]) + predict_ranges
             outputs = y[output_ids]
+            # print('\n\n', outputs.shape, '\n\n')
+
+            # print('\n\n', self.max_predict_range, '\n\n')
+            # exit()
 
             yield inputs, outputs, lead_times, variables, out_variables
 

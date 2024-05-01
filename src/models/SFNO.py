@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 from torch_harmonics.examples.sfno import SphericalFourierNeuralOperatorNet
 from torch_harmonics.examples.shallow_water_equations import ShallowWaterSolver
-from torch_harmonics.examples.pde_sphere import SphereSolver
 from torch_harmonics import *
 from lib.metrics import *
+from scripts.visualize_fourier_modes import *
 torch.manual_seed(0)
 np.random.seed(0)
 
@@ -64,9 +64,8 @@ class SFNOWrapper(nn.Module):
     def forward(self, x, y, lat):
         y_pred = self.sfno_model(x)  # (b,c,h,w)
         # return lat_weighted_mse(y_pred, y, vars=self.vars, lat=lat), y_pred 
-        # return l2loss_sphere(solver=self.sw_solver, prd=y_pred, tar=y, vars=self.vars, lat=lat), y_pred
-        return y_pred
-     
+        return l2loss_sphere(solver=self.sw_solver, prd=y_pred, tar=y, vars=self.vars, lat=lat), y_pred
+    
     # inference use a different type of metrics 
     def evaluate(self, x, y, out_variables, transform, metrics, lat, clim, log_postfix):
         _, preds = self.forward(x, y, lat=lat)
@@ -74,3 +73,7 @@ class SFNOWrapper(nn.Module):
 
 
 
+    # visualize spectrum after fft 
+    def visualize_spectrum(self, x, y,lat, out_variables, batch_id):
+        _, preds = self.forward(x, y, lat=lat)
+        one_step_plot_spectrum(preds, y, vars=out_variables, model_name="SFNO", batch_id=batch_id)

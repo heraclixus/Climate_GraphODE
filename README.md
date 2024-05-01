@@ -99,7 +99,7 @@ Run FNO:
 Suggestion on dependency: use the dependency from climaX (as the `torch.fft.rfft` can run into trouble with newer versions of pytorch, same applies to `torch-lightning`). 
 
 ```sh
-python3 src/train.py --config configs/forecast_fno.yaml --trainer.devices=1 --trainer.max_epochs=500 --data.predict_range=72 --data.out_variables=["2m_temperature"] --data.batch_size=16 --data.variables=["2m_temperature"]
+python3 src/train.py --config configs/forecast_fno.yaml --trainer.devices=1 --trainer.max_epochs=100 --data.predict_range=1 --data.out_variables=["2m_temperature"] --data.batch_size=16 --data.variables=["2m_temperature"]
 ```
 
 
@@ -189,17 +189,17 @@ Trained after 7 epochs
 ```
 
 2m_temperature
-Trained after 5 epochs
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃            Test metric            ┃           DataLoader 0            ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│             test/acc              │        0.08266861736774445        │
-│  test/acc_2m_temperature_3_days   │        0.08266861736774445        │
-│            test/w_mse             │        0.3225284814834595         │
-│ test/w_mse_2m_temperature_3_days  │        0.3225284814834595         │
-│            test/w_rmse            │         12.00672721862793         │
-│ test/w_rmse_2m_temperature_3_days │         12.00672721862793         │
-└───────────────────────────────────┴───────────────────────────────────┘
+Trained after 69 epochs using partial train/val/test
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃            Test metric             ┃            DataLoader 0            ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│              test/acc              │         0.9917311072349548         │
+│  test/acc_2m_temperature_1_hours   │         0.9917311072349548         │
+│             test/w_mse             │       0.0020305386278778315        │
+│ test/w_mse_2m_temperature_1_hours  │       0.0020305386278778315        │
+│            test/w_rmse             │         0.9469155669212341         │
+│ test/w_rmse_2m_temperature_1_hours │         0.9469155669212341         │
+└────────────────────────────────────┴────────────────────────────────────┘
 
 ### Step 2d: PDE-Refiner-based Training
 

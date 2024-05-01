@@ -138,12 +138,13 @@ model:
       modes1: 8
       modes2: 8
       width: 50
-      vars: [geopotential]# ["2m_temperature"]
+      vars: ["2m_temperature"]
+      # vars: [geopotential] 
 
 
 # ---------------------------- DATA -------------------------------------------
 data:
-  root_dir: /home/dingy6/Climate_GraphODE/data/geopotential_6.526deg_np/
+  root_dir: /home/dingy6/Climate_GraphODE/data/2m_temperature_5.625deg_np
   variables: [
       "land_sea_mask",
       "orography",
