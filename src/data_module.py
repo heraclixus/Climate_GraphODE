@@ -56,6 +56,7 @@ class GlobalForecastDataModule(LightningDataModule):
         batch_size: int = 64,
         num_workers: int = 0,
         pin_memory: bool = False,
+        batch_size_test: int = 256
     ):
         super().__init__()
         if num_workers > 1:
@@ -199,7 +200,7 @@ class GlobalForecastDataModule(LightningDataModule):
     def test_dataloader(self):
         return DataLoader(
             self.data_test,
-            batch_size=self.hparams.batch_size,
+            batch_size=self.hparams.batch_size_test,
             shuffle=False,
             drop_last=False,
             num_workers=self.hparams.num_workers,
@@ -213,8 +214,8 @@ examine the data loader from ClimaX
 """
 
 if __name__ == "__main__":
-
-    with open("../../configs/dataset.yaml", "r") as f:
+    print(os.getcwd())
+    with open("configs/dataset.yaml", "r") as f:
         config_data = yaml.safe_load(f)
 
     data_module = GlobalForecastDataModule(
@@ -225,7 +226,9 @@ if __name__ == "__main__":
     )
 
     data_module.setup()
-
+    train_data = data_module.data_train
+    val_data = data_module.data_val
+    test_data = data_module.data_test
     train_loader = data_module.train_dataloader()
     val_loader = data_module.val_dataloader()
     test_loader = data_module.test_dataloader()

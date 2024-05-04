@@ -8,7 +8,7 @@ weatherbench2:
 
 
 dataset:
-  root_dir: ../../data/2m_temperature_5.625deg_np/
+  root_dir: data/2m_temperature_5.625deg_np/
   variables: ["2m_temperature"]
   out_variables: ["2m_temperature"]
   predict_range: 36
@@ -17,3 +17,4 @@ dataset:
   buffer_size: 10000
   num_workers: 1 
   pin_memory: False
+  batch_size_test: 256

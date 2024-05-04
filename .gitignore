@@ -4,3 +4,4 @@ experiments
 __pycache__ 
 *.txt
 checkpoints/
+*.sh

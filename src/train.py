@@ -7,7 +7,6 @@ from data_module import GlobalForecastDataModule
 from module import GlobalForecastModule
 from pytorch_lightning.cli import LightningCLI
 
-
 def main():
     # Initialize Lightning with the model and data modules, and instruct it to parse the config yml
     cli = LightningCLI(
@@ -33,7 +32,7 @@ def main():
 
     # test the trained model
     cli.trainer.test(cli.model, datamodule=cli.datamodule, ckpt_path="best")
-
+    
 
 if __name__ == "__main__":
     main()

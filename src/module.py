@@ -12,7 +12,6 @@ from lib.utils import LinearWarmupCosineAnnealingLR
 from models.SFNO import SFNOWrapper
 from models.FNO import FNO2d
 
-
 """
 calling signature for the internal model (net)
 - for FNO, no need for lead_times, variables, out_variables (for now)
@@ -127,7 +126,10 @@ class GlobalForecastModule(LightningModule):
         )
 
         # new 4/29: add visualization
-        self.net.visualize_spectrum(x, y, self.lat, out_variables, batch_idx)
+        # self.net.visualize_spectrum(x, y, self.lat, out_variables, batch_idx, self.pred_range, add_ribbon=False)        
+        # self.net.visualize_spectrum(x, y, self.lat, out_variables, batch_idx, self.pred_range, add_ribbon=True)
+        self.net.visualize_spectrum(x, y, self.lat, out_variables, batch_idx, self.pred_range, add_ribbon=False, type="sht")        
+        self.net.visualize_spectrum(x, y, self.lat, out_variables, batch_idx, self.pred_range, add_ribbon=True, type="sht")
 
         loss_dict = {}
         for d in all_loss_dicts:

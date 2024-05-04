@@ -71,9 +71,7 @@ class SFNOWrapper(nn.Module):
         _, preds = self.forward(x, y, lat=lat)
         return [m(preds, y, transform, out_variables, lat, clim, log_postfix) for m in metrics]
 
-
-
     # visualize spectrum after fft 
-    def visualize_spectrum(self, x, y,lat, out_variables, batch_id):
-        _, preds = self.foward(x, y, lat=lat)
-        one_step_plot_spectrum(preds, y, vars=out_variables, model_name="SFNO", batch_id=batch_id)
+    def visualize_spectrum(self, x, y,lat, out_variables, batch_id, pred_range, add_ribbon, type="fft"):
+        _, preds = self.forward(x, y, lat=lat)
+        one_step_plot_spectrum(preds, y, vars=out_variables, model_name="SFNO", batch_id=batch_id, predict_range=pred_range, add_ribbon_bar=add_ribbon, type=type)
