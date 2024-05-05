@@ -93,7 +93,7 @@ def one_step_plot_spectrum(pred, target, vars, model_name, batch_id = None, pred
     else: # modified to be sht
         nlat, nlon = target.shape[-2], target.shape[-1]
         lmax = mmax = nlat
-        sht = RealSHT(nlat, nlon, lmax=lmax, mmax=mmax)
+        sht = RealSHT(nlat, nlon, lmax=lmax, mmax=mmax).to(pred.device)
         pred_hat = sht(pred)  # (b,c,h,h)
         pred_target = sht(target) # (b,c,h,h)
         

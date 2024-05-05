@@ -187,4 +187,6 @@ with `l2loss_sphere` on training and same L2 based loss on test; negligible diff
 
 ### Step 5: Visualization 
 We need to produce some sensible visualizations for the output feature forecast over the surface of earth. 
-- [ ] Finish visualization scripts. 
+- [x] Finish visualization scripts. 
+
+Also need to add a visualization for the correlation between spectrums (e.g., when does average correlation fall below 0.9) during rollouts 
