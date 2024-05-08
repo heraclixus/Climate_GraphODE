@@ -190,6 +190,7 @@ Trained after 7 epochs
 
 2m_temperature
 Trained after 69 epochs using partial train/val/test
+```
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃            Test metric             ┃            DataLoader 0            ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
@@ -200,7 +201,7 @@ Trained after 69 epochs using partial train/val/test
 │            test/w_rmse             │         0.9469155669212341         │
 │ test/w_rmse_2m_temperature_1_hours │         0.9469155669212341         │
 └────────────────────────────────────┴────────────────────────────────────┘
-
+```
 ### Step 2d: PDE-Refiner-based Training
 
 
