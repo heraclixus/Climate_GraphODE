@@ -51,7 +51,11 @@ def obtain_spectrum_fft(x, x_pred, idx, n_bins=32):
         "label": labels 
     })
 
-    return data
+    data_diff = pd.DataFrame({
+        "wavenumber": bins.numpy(),
+        "Error energy spectrum": np.abs(radial_spectrum_profile.numpy() - radial_spectrum_profile_pred.numpy())
+    })
+    return data, data_diff
 
 
 def obtain_spectrum_sht(x, x_pred, idx):
@@ -70,7 +74,13 @@ def obtain_spectrum_sht(x, x_pred, idx):
         "spectrum energy": spectrum,
         "label": labels
     })
-    return data
+    
+    data_diff = pd.DataFrame({
+        "degree": degrees, 
+        "Error energy spectrum": np.abs(energy.numpy() - energy_pred.numpy())
+    })
+
+    return data, data_diff
 
 
 def obtain_freq_vars(x, x_pred, idx, type="fft", n_bins=32):
@@ -86,13 +96,17 @@ def obtain_freq_vars(x, x_pred, idx, type="fft", n_bins=32):
 a specific plotting function when there's only one feature
 """
 def one_step_plot_spectrum_single(x, x_pred, vars, model_name, predict_range=72, type="fft"):
-    fig = plt.figure(figsize=(15,10))
-    data = obtain_freq_vars(x, x_pred, 0, type=type)
+    fig = plt.figure(figsize=(10,5))
+    data, data_diff = obtain_freq_vars(x, x_pred, 0, type=type)
     xlabel = "wavenumber" if type == "fft" else "degree"
     sns.lineplot(data=data, x=xlabel, y="spectrum energy", hue="label")
     plt.title(f"spectrum energy plot for channel {vars[0]}")
     plt.savefig(f"figs/spectrum/{model_name}/spectrum_plot_{model_name}_test_range={predict_range}_{type}.png")
     plt.close()
+    fig = plt.figure(figsize=(10,5))
+    sns.lineplot(data=data_diff, x="wavenumber", y="Error energy spectrum")
+    plt.title(f"Error in spectrum energy for {model_name}, predict_range = {predict_range}")
+    plt.savefig(f"figs/spectrum/{model_name}/spectrum_error_{model_name}_test_range={predict_range}_{type}.png")
 
 """
 Method 1: plot the frequency spectrum of a pred vs target batch
@@ -111,24 +125,46 @@ def one_step_plot_spectrum(pred, target, vars, model_name, batch_id = None, pred
     fig, ax = plt.subplots(n_rows, 2)
     fig.set_figheight(10 * n_rows)
     fig.set_figwidth(10)
+    xlabel = "wavenumber" if type == "fft" else "degree"
     for i in range(n_rows):
         idx1 = i * 2 # first plot index
         idx2 = i * 2 + 1  # second plot index, same row
-        data1 = obtain_freq_vars(pred, target, idx1, type=type)
+        data1, _ = obtain_freq_vars(pred, target, idx1, type=type)
         ax1 = ax[i,0] if n_rows > 1 else ax[0]     
-        xlabel = "wavenumber" if type == "fft" else "degree"
         sns.lineplot(data=data1, ax=ax1, x=xlabel, y="spectrum energy", hue="label")
         ax1.set_title(f"spectrum plot for channel {vars[idx1]}")
         # second plot, same row 
         if i * 2 + 1 >= n_channels: 
             break 
-        data2 = obtain_freq_vars(pred, target, idx2, type=type)
+        data2, _ = obtain_freq_vars(pred, target, idx2, type=type)
         ax2 = ax[i,1] if n_rows > 1 else ax[1]        
         sns.lineplot(data=data2, ax=ax2, x=xlabel, y="spectrum energy", hue="label")
         ax2.set_title(f"spectrum plot for channel {vars[idx2]}")
+    plt.tight_layout()
     plt.savefig(f"figs/spectrum/{model_name}/spectrum_plot_{model_name}_{batch_id}_range={predict_range}_{type}.png")
     plt.close()
 
+    # error plot
+    fig, ax = plt.subplots(n_rows, 2)
+    fig.set_figheight(10 * n_rows)
+    fig.set_figwidth(10)
+    for i in range(n_rows):
+        idx1 = i * 2 # first plot index
+        idx2 = i * 2 + 1  # second plot index, same row
+        _, data1 = obtain_freq_vars(pred, target, idx1, type=type)
+        ax1 = ax[i,0] if n_rows > 1 else ax[0]     
+        sns.lineplot(data=data1, ax=ax1, x=xlabel, y="Error energy spectrum")
+        ax1.set_title(f"Error in spectrum energy for channel {vars[idx1]}")
+        # second plot, same row 
+        if i * 2 + 1 >= n_channels:
+            break 
+        _, data2 = obtain_freq_vars(pred, target, idx2, type=type)
+        ax2 = ax[i,1] if n_rows > 1 else ax[1]        
+        sns.lineplot(data=data2, ax=ax2, x=xlabel, y="Error energy spectrum")
+        ax2.set_title(f"Error in spectrum energy for channel {vars[idx2]}")
+    plt.tight_layout()
+    plt.savefig(f"figs/spectrum/{model_name}/spectrum_error_{model_name}_{batch_id}_range={predict_range}_{type}.png")
+    plt.close()
 
 
 """
@@ -147,8 +183,8 @@ TODO: add a power spectrum plot with bins
 # tests 
 
 if __name__ == "__main__":
-    pred = torch.randn((32, 1, 64, 128))
-    target = torch.randn((32, 1, 64, 128))
-    vars = ["test_vars1"]
-    # one_step_plot_spectrum(pred, target, vars, "test", batch_id = 1, predict_range=72, type="sht")
+    pred = torch.randn((32, 2, 64, 128))
+    target = torch.randn((32, 2, 64, 128))
+    vars = ["test_vars1", "test_vars2"]
+    one_step_plot_spectrum(pred, target, vars, "test", batch_id = 1, predict_range=72, type="sht")
     one_step_plot_spectrum(pred, target, vars, "test", batch_id = 1, predict_range=72, type="fft")
