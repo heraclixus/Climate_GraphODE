@@ -1,8 +1,10 @@
 /data
 logs
+log_outputs/
 experiments
 __pycache__ 
 *.txt
 checkpoints/
 *.sh
 figs/old
+*.csv

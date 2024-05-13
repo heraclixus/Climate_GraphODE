@@ -2,7 +2,6 @@ import torch
 from torch.utils.data import DataLoader
 from module import GlobalForecastModule
 from data_module import GlobalForecastDataModule, collate_fn
-from module import GlobalForecastModule
 import numpy as np
 import argparse
 import matplotlib.pyplot as plt
