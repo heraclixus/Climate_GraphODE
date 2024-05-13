@@ -1,6 +1,3 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT license.
-
 import os
 
 from data_module import GlobalForecastDataModule
@@ -32,7 +29,10 @@ def main():
 
     # test the trained model
     cli.trainer.test(cli.model, datamodule=cli.datamodule, ckpt_path="best")
-    
+
+    # call the rollout function to perform rollout
+    # cli.trainer.predict(cli.model, datamodule=cli.datamodule, ckpt_path="best")
+
 
 if __name__ == "__main__":
     main()

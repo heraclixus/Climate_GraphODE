@@ -155,6 +155,6 @@ class FNO2d(nn.Module):
     
 
     # visualize spectrum after fft 
-    def visualize_spectrum(self, x, y,lat, out_variables, batch_id, pred_range, add_ribbon, type="fft"):
+    def visualize_spectrum(self, x, y,lat, out_variables, batch_id, pred_range, type="fft"):
         _, preds = self.forward(x, y, lat=lat)
-        one_step_plot_spectrum(preds, y, vars=out_variables, model_name="FNO", batch_id=batch_id, predict_range=pred_range, add_ribbon_bar=add_ribbon, type=type)
+        one_step_plot_spectrum(preds, y, vars=out_variables, model_name="FNO", batch_id=batch_id, predict_range=pred_range, type=type)

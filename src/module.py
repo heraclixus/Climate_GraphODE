@@ -29,12 +29,16 @@ class GlobalForecastModule(LightningModule):
     LightingForecast Module for Weather Forecast
     """
 
-    def __init__(self, net, 
-                 lr, beta_1=0.9, beta_2=0.99, weight_decay=1e-5,
-                 warmup_epochs=1000,max_epochs=2000, warmup_start_lr=1e-8, eta_min=1e-8):
+    def __init__(self, net_type, vars, modes1=8, modes2=8, width=50,img_size=[32,64], in_chans=1, out_chans=1,
+                 lr=1e-6, beta_1=0.9, beta_2=0.99, weight_decay=1e-5,
+                 warmup_epochs=1000,max_epochs=2000, warmup_start_lr=1e-8, eta_min=1e-8, rollout_iterations=10, *kwargs):
         super().__init__()
-        self.save_hyperparameters(logger=False, ignore=["net"]) # temporary ignore
-        self.net = net
+        self.save_hyperparameters(logger=False)
+        self.net_type = net_type
+        if net_type == "fno":
+            self.net = FNO2d(modes1=modes1, modes2=modes2, width=width, vars=vars)
+        else:
+            self.net = SFNOWrapper(vars=vars, in_chans=in_chans, out_chans=out_chans, img_size=img_size)
     
     def set_denormalization(self, mean, std):
         self.denormalization = transforms.Normalize(mean, std)
@@ -125,11 +129,8 @@ class GlobalForecastModule(LightningModule):
             log_postfix=log_postfix,
         )
 
-        # new 4/29: add visualization
-        # self.net.visualize_spectrum(x, y, self.lat, out_variables, batch_idx, self.pred_range, add_ribbon=False)        
-        # self.net.visualize_spectrum(x, y, self.lat, out_variables, batch_idx, self.pred_range, add_ribbon=True)
-        self.net.visualize_spectrum(x, y, self.lat, out_variables, batch_idx, self.pred_range, add_ribbon=False, type="sht")        
-        self.net.visualize_spectrum(x, y, self.lat, out_variables, batch_idx, self.pred_range, add_ribbon=True, type="sht")
+        self.net.visualize_spectrum(x, y, self.lat, out_variables, batch_idx, self.pred_range, type="sht")        
+        self.net.visualize_spectrum(x, y, self.lat, out_variables, batch_idx, self.pred_range, type="fft")
 
         loss_dict = {}
         for d in all_loss_dicts:

@@ -47,13 +47,13 @@ def obtain_spectrum_fft(x, x_pred, idx, n_bins=32):
     labels = np.array(["energy_target"] * len(bins) + ["energy_pred"] * len(bins))
     data = pd.DataFrame({
         "wavenumber": wavenumbers,
-        "spectrum energy": spectrum, 
+        "spectrum energy": np.log(spectrum + 1e-8), 
         "label": labels 
     })
 
     data_diff = pd.DataFrame({
         "wavenumber": bins.numpy(),
-        "Error energy spectrum": np.abs(radial_spectrum_profile.numpy() - radial_spectrum_profile_pred.numpy())
+        "Error energy spectrum": np.log(np.abs(radial_spectrum_profile.numpy() - radial_spectrum_profile_pred.numpy())+1e-8)
     })
     return data, data_diff
 
@@ -71,13 +71,13 @@ def obtain_spectrum_sht(x, x_pred, idx):
     labels = np.array(["energy_target"] * len(degrees) + ["energy_pred"] * len(degrees))
     data = pd.DataFrame({
         "degree": degrees_,
-        "spectrum energy": spectrum,
+        "spectrum energy": np.log(spectrum + 1e-8),
         "label": labels
     })
     
     data_diff = pd.DataFrame({
         "degree": degrees, 
-        "Error energy spectrum": np.abs(energy.numpy() - energy_pred.numpy())
+        "Error energy spectrum": np.log(np.abs(energy.numpy() - energy_pred.numpy()) + 1e-8)
     })
 
     return data, data_diff
@@ -104,7 +104,7 @@ def one_step_plot_spectrum_single(x, x_pred, vars, model_name, predict_range=72,
     plt.savefig(f"figs/spectrum/{model_name}/spectrum_plot_{model_name}_test_range={predict_range}_{type}.png")
     plt.close()
     fig = plt.figure(figsize=(10,5))
-    sns.lineplot(data=data_diff, x="wavenumber", y="Error energy spectrum")
+    sns.lineplot(data=data_diff, x=xlabel, y="Error energy spectrum")
     plt.title(f"Error in spectrum energy for {model_name}, predict_range = {predict_range}")
     plt.savefig(f"figs/spectrum/{model_name}/spectrum_error_{model_name}_test_range={predict_range}_{type}.png")
 

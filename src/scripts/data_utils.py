@@ -155,8 +155,6 @@ def get_data_loader(config_data, args):
 
 """
 convert the weatherbench2 dataset nc file into numpy arrays
-For the dataset of geospatial only: path = data/geopotential_5.625deg/ 
-variables = geopotential
 """
 def nc2np(path, variables, years, save_dir, partition, num_shards_per_year):
     os.makedirs(os.path.join(save_dir, partition), exist_ok=True)
@@ -168,7 +166,7 @@ def nc2np(path, variables, years, save_dir, partition, num_shards_per_year):
         normalize_std = {}
     climatology = {}
 
-    constants = xr.open_mfdataset(os.path.join(path, "constants.nc"), combine="by_coords", parallel=True)
+    constants = xr.open_mfdataset(os.path.join(path, "constants_5.625deg.nc"), combine="by_coords", parallel=True)
     constant_fields = ["land_sea_mask", "orography", "lattitude"]
     constant_values = {}
     for f in constant_fields:
@@ -187,8 +185,9 @@ def nc2np(path, variables, years, save_dir, partition, num_shards_per_year):
         # non-constant fields
         for var in variables:
             ps = glob.glob(os.path.join(path, f"{var}_5.625deg", f"*{year}*.nc"))
+            print(os.path.join(path, f"{var}_5.625deg", f"*{year}*.nc"))
 
-            ds = xr.open_mfdataset(ps, combine="by_coords", parallel=True)  # dataset for a single variable
+            ds = xr.open_mfdataset(ps, combine="by_coords", parallel=True, engine="netcdf4")  # dataset for a single variable
             code = NAME_TO_VAR[var]
 
             if len(ds[code].shape) == 3:  # surface level variables
@@ -296,7 +295,7 @@ def nc2np_geopotential(path, years, save_dir, partition, num_shards_per_year):
         # non-constant fields
         var = "geopotential"
         ps = glob.glob(os.path.join(path, f"*{year}*.nc"))
-        ds = xr.open_mfdataset(ps, combine="by_coords", parallel=True)  # dataset for a single variable
+        ds = xr.open_mfdataset(ps, combine="by_coords", parallel=True, engine="netcdf4")  # dataset for a single variable
         code = NAME_TO_VAR[var]
 
         if len(ds[code].shape) == 3:  # surface level variables
@@ -389,7 +388,7 @@ def nc2np_geopotential(path, years, save_dir, partition, num_shards_per_year):
 
 @click.command()
 @click.option("--root_dir", type=str, default="../../data/")
-@click.option("--save_dir", type=str, default="../../data/2m_temperature_5.625deg_np")
+@click.option("--save_dir", type=str, default="../../data/data_np")
 @click.option(
     "--variables",
     "-v",
@@ -397,16 +396,16 @@ def nc2np_geopotential(path, years, save_dir, partition, num_shards_per_year):
     multiple=True,
     default=[
         "2m_temperature",
-        "10m_u_component_of_wind",
-        "10m_v_component_of_wind",
-        "toa_incident_solar_radiation",
-        "total_precipitation",
+        # "10m_u_component_of_wind",
+        # "10m_v_component_of_wind",
+        # "toa_incident_solar_radiation",
+        # "total_precipitation",
         "geopotential",
-        "u_component_of_wind",
-        "v_component_of_wind",
-        "temperature",
-        "relative_humidity",
-        "specific_humidity",
+        # "u_component_of_wind",
+        # "v_component_of_wind",
+        # "temperature",
+        # "relative_humidity",
+        # "specific_humidity",
     ],
 )
 @click.option("--start_train_year", type=int, default=1979)
@@ -433,18 +432,18 @@ def main(
     print(f"val_years = {val_years}")
     print(f"test_years = {test_years}")
 
-    # os.makedirs(save_dir, exist_ok=True)
+    os.makedirs(save_dir, exist_ok=True)
 
-    # nc2np(root_dir, variables, train_years, save_dir, "train", num_shards)
-    # nc2np(root_dir, variables, val_years, save_dir, "val", num_shards)
-    # nc2np(root_dir, variables, test_years, save_dir, "test", num_shards)
+    nc2np(root_dir, variables, train_years, save_dir, "train", num_shards)
+    nc2np(root_dir, variables, val_years, save_dir, "val", num_shards)
+    nc2np(root_dir, variables, test_years, save_dir, "test", num_shards)
 
     # nc2np_geopotential(root_dir, train_years, save_dir, "train", num_shards)
     # nc2np_geopotential(root_dir, val_years, save_dir, "val", num_shards)
     # nc2np_geopotential(root_dir, test_years, save_dir, "test", num_shards)
     # save lat and lon data
     ps = glob.glob(os.path.join(root_dir, f"{variables[0]}_5.625deg", f"*{train_years[0]}*.nc"))
-    x = xr.open_mfdataset(ps[0], parallel=True)
+    x = xr.open_mfdataset(ps[0], parallel=True, engine="netcdf4")
     lat = x["lat"].to_numpy()
     lon = x["lon"].to_numpy()
     np.save(os.path.join(save_dir, "lat.npy"), lat)

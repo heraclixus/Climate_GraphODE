@@ -208,7 +208,6 @@ class GlobalForecastDataModule(LightningDataModule):
             collate_fn=collate_fn,
         )
 
-
 """
 examine the data loader from ClimaX
 """

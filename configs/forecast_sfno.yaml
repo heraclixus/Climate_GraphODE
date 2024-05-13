@@ -71,9 +71,16 @@ model:
   warmup_start_lr: 1e-8
   eta_min: 1e-8
   
-  net:
-    class_path: models.SFNO.SFNOWrapper
-    init_args:
+  net_type: "sfno"
+  vars: ["2m_temperature"]
+  img_size: [32, 64]
+  in_chans: 1
+  out_chans: 1
+  modes1: 8
+  modes2: 8
+  width: 50
+    # class_path: models.SFNO.SFNOWrapper
+    # init_args:
       # default_vars: [
       #     "land_sea_mask",
       #     "orography",
@@ -135,15 +142,16 @@ model:
       # drop_rate: 0.1
 
       # SFNO
-      vars: ["2m_temperature"]
-      img_size: [32, 64]
+    # vars: ["2m_temperature"]
+    # img_size: [32, 64]
+    # in_chans: 1
+    # out_chans: 1
       # spectral_transform: "sht"
       # operator_type: "driscoll-healy"
       # img_size: [32, 64]
       # grid: "equiangular"
       # scale_factor: 3
-      in_chans: 1
-      out_chans: 1
+      
       # embed_dim: 256
       # num_layers: 4
       # activation_function: "relu"

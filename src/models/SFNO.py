@@ -20,8 +20,8 @@ class SFNOWrapper(nn.Module):
                  img_size = [32, 64],
                  grid = "equiangular",
                  scale_factor = 3,
-                 in_chans = 3,
-                 out_chans = 3,
+                 in_chans = 1,
+                 out_chans = 1,
                  embed_dim = 256,
                  num_layers = 4,
                  activation_function = "relu",
@@ -54,7 +54,8 @@ class SFNOWrapper(nn.Module):
         modes_lat = modes_lon = min(modes_lat, modes_lon)
 
         # TODO: determine dt and grid 
-        self.sw_solver = ShallowWaterSolver(nlat=self.nlat, nlon=self.nlon, dt=10, lmax=modes_lat, mmax=modes_lon, grid=self.grid)
+        # sw_solver has issue with unrollling
+        # self.sw_solver = ShallowWaterSolver(nlat=self.nlat, nlon=self.nlon, dt=10, lmax=modes_lat, mmax=modes_lon, grid=self.grid)
 
         self.vars = vars
         self.out_chans = len(vars)
@@ -63,8 +64,8 @@ class SFNOWrapper(nn.Module):
     # SFNO uses its own spherical based loss function for training. 
     def forward(self, x, y, lat):
         y_pred = self.sfno_model(x)  # (b,c,h,w)
-        # return lat_weighted_mse(y_pred, y, vars=self.vars, lat=lat), y_pred 
-        return l2loss_sphere(solver=self.sw_solver, prd=y_pred, tar=y, vars=self.vars, lat=lat), y_pred
+        return lat_weighted_mse(y_pred, y, vars=self.vars, lat=lat), y_pred 
+        # return l2loss_sphere(solver=self.sw_solver, prd=y_pred, tar=y, vars=self.vars, lat=lat), y_pred
     
     # inference use a different type of metrics 
     def evaluate(self, x, y, out_variables, transform, metrics, lat, clim, log_postfix):
@@ -72,6 +73,6 @@ class SFNOWrapper(nn.Module):
         return [m(preds, y, transform, out_variables, lat, clim, log_postfix) for m in metrics]
 
     # visualize spectrum after fft 
-    def visualize_spectrum(self, x, y,lat, out_variables, batch_id, pred_range, add_ribbon, type="fft"):
+    def visualize_spectrum(self, x, y,lat, out_variables, batch_id, pred_range, type="fft"):
         _, preds = self.forward(x, y, lat=lat)
-        one_step_plot_spectrum(preds, y, vars=out_variables, model_name="SFNO", batch_id=batch_id, predict_range=pred_range, add_ribbon_bar=add_ribbon, type=type)
+        one_step_plot_spectrum(preds, y, vars=out_variables, model_name="SFNO", batch_id=batch_id, predict_range=pred_range, type=type)

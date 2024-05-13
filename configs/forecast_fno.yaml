@@ -70,10 +70,14 @@ model:
   max_epochs: 100000
   warmup_start_lr: 1e-8
   eta_min: 1e-8
-  
-  net:
-    class_path: models.FNO.FNO2d
-    init_args:
+  net_type: "fno"
+  modes1: 8
+  modes2: 8
+  width: 50
+  vars: ["2m_temperature"]
+  # net:
+    # class_path: models.FNO.FNO2d
+    # init_args:
       # default_vars: [
       #     "land_sea_mask",
       #     "orography",
@@ -135,10 +139,7 @@ model:
       # drop_rate: 0.1
 
       # FNO
-      modes1: 8
-      modes2: 8
-      width: 50
-      vars: ["2m_temperature"]
+      
 
 
 # ---------------------------- DATA -------------------------------------------
