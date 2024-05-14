@@ -13,15 +13,17 @@ from data_module import GlobalForecastDataModule, collate_fn
 load a trained lightning module
 """
 def get_metadata(checkpoint_path):
-    state = torch.load(checkpoint_path)
+    state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
     # model 
     model_hparams = state["hyper_parameters"]
-    if model_hparams["net_type"] == "sfno": # temporary
-        return "sfno", None, None
-
     new_model = GlobalForecastModule(net_type=model_hparams["net_type"], vars=model_hparams["vars"])
-    new_model.load_from_checkpoint(checkpoint_path)
-    # data
+    # fail gracefully
+    try: 
+        new_model.load_from_checkpoint(checkpoint_path, map_location=torch.device("cpu"))
+    except:
+        print(f"error with {checkpoint_path}, removing...")
+        os.remove(checkpoint_path)
+        return "sfno", None, None
     config_data = state["datamodule_hyper_parameters"]
     data_module = GlobalForecastDataModule(
         root_dir = config_data["root_dir"],

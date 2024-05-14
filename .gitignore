@@ -8,3 +8,5 @@ checkpoints/
 *.sh
 figs/old
 *.csv
+results/
+*.out
