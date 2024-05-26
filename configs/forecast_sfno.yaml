@@ -10,7 +10,7 @@ trainer:
   num_nodes: 1
   accelerator: gpu
 
-  min_epochs: 1
+  min_epochs: 5
   max_epochs: 100
   enable_progress_bar: true
 
@@ -62,7 +62,7 @@ trainer:
 
 # ---------------------------- MODEL -------------------------------------------
 model:
-  lr: 5e-4
+  lr: 1e-3
   beta_1: 0.9
   beta_2: 0.99
   weight_decay: 1e-5
@@ -72,6 +72,7 @@ model:
   eta_min: 1e-8
   
   net_type: "sfno"
+  use_geometric_loss: True
   vars: ["2m_temperature"]
   img_size: [32, 64]
   in_chans: 1

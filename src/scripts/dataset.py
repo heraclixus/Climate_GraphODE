@@ -92,6 +92,12 @@ class Forecast(IterableDataset):
             output_ids = torch.arange(inputs.shape[0]) + predict_ranges
             outputs = y[output_ids]
 
+            # print(f"lead_times = {lead_times}")
+            # print(f"predict_range = {predict_ranges}")
+            # print(f"output_ids = {output_ids}")
+            # print(f"input = {inputs.shape}")
+            # print(f"outputs = {outputs.shape}")
+
             yield inputs, outputs, lead_times, variables, out_variables
 
 
