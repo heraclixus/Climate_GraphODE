@@ -17,14 +17,20 @@ $$
 where $dX_t$ is a a control signal, function belonging to a Banach space. Here we can say that $u: D \subset \mathbb{R}^2 \rightarrow \mathbb{R}^d$, e.g., $u \in \mathcal{H}_u$, a Hilbert space, then $X_t \in \mathcal{H}_X$, and $G: \mathcal{H}_u \rightarrow L(H_X, H_u)$.
 
 The general CPDE admits an integral form mild solution which can be approximated using an integration (neural) kernel, assuming that $G$ is smooth and $dX_t$ has bounded variation, and the Neural PDE formulation can be done as following: 
-$$
-\begin{aligned}
-& z_0(x) = L_\theta (u_0(x))\\
-& z_t = \mathcal{F}^{-1}(\text{ODESolve}(\mathcal{F}(z_0), \Psi_{\theta}, [0,t]))\\
-& u_t = \Pi_\theta(z_t).
+$$\begin{aligned}
+&z_0(x) = L_\theta (u_0(x))\\\
+&z_t = \mathcal{F}^{-1}(\text{ODESolve}(\mathcal{F}(z_0), \Psi_{\theta}, [0,t]))\\\
+&u_t = \Pi_\theta(z_t).
 \end{aligned}$$
 
-where for PDE, $\Psi_\theta(h)(x) = F_\theta(h(x))$ and for CPDE, $\Psi_\theta(h)(x) = F_\theta(h(x)) + G_\theta(h(x))X_t$ where $X_t$ is the driving signal / function. 
+where: 
+$$\begin{aligned}
+&\Psi_\theta = A + \mathcal{F} \circ H_\theta \circ \mathcal{F}^{-1}\\\
+&H_\theta = F_\theta(h(z)) + G_\theta(h(z))X_t && \text{for NCPDE}\\\
+&H_\theta = F_\theta(h(z)) && \text{For NPDE}
+\end{aligned}$$
+
+where $X_t$ is the driving function for CPDE and $A, F, G$ are learnable.
 
 In the case of climate dataset, we can treat $u_0$ as the input data with all features, while the control path $\{X_t\}$ maybe the time series without the target feature. 
 
@@ -73,3 +79,12 @@ controlledODE = ControlledODE(cpde_func=cpde_function, z_dim, modes1, modes2)
 controlled_solver = ControlledDiffeqSolver(z_dim, cpde_func, modes1, modes2)
 ```
 
+
+### Integration Tests
+
+The shape test (shapes agree) can be found in `integration_test.py`. 
+
+
+### Extension
+
+The design of $H$ is key. In the most basic case we have 
