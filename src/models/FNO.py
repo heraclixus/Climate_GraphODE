@@ -64,7 +64,7 @@ class SpectralConv2d(nn.Module):
         return x
 
 class FNO2d(nn.Module):
-    def __init__(self, modes1, modes2, vars, width):
+    def __init__(self, modes1, modes2, vars, width, in_chans=1):
         super(FNO2d, self).__init__()
 
         """
@@ -85,7 +85,9 @@ class FNO2d(nn.Module):
         self.width = width
         self.vars = vars
         self.padding = 9 # pad the domain if input is non-periodic
-        self.fc0 = nn.Linear(len(vars), self.width)
+
+        # refiner training has len(vars) * 2
+        self.fc0 = nn.Linear(in_chans, self.width)
 
         self.conv0 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
         self.conv1 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)

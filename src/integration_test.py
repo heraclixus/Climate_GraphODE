@@ -30,6 +30,15 @@ def testPDEFunction():
     print(f"PDE: latent path = {z_t.shape}")
     print("passed shape test for PDE Function")
 
+def testCPDEFunction_wo_forcing():
+    z0 = torch.randn((32, 10, 64, 32)) # initial latent state
+    xi = torch.zeros((32, 3, 64, 32, 72)) # time series 
+    cpde_function = CPDEFunction(z_dim=10, x_dim=3)
+    solver_c = ControlledDiffeqSolver(z_dim=10, cpde_func=cpde_function, modes1=8, modes2=8)
+    z_t = solver_c(z0, xi)
+    print(f"CPDE: latent path = {z_t.shape}")
+    print("passed shape test for CPDE Function without input driving")
+
 
 def testCPDEFunction():
     z0 = torch.randn((32, 10, 64, 32)) # initial latent state
@@ -41,7 +50,8 @@ def testCPDEFunction():
     print("passed shape test for CPDE Function")
 
 if __name__ == "__main__":
-    testPDEFunction()
-    testCPDEFunction()
-    testNPDE()
-    testNCPDE()
+    # testPDEFunction()
+    # testCPDEFunction()
+    # testNPDE()
+    # testNCPDE()
+    testCPDEFunction_wo_forcing()

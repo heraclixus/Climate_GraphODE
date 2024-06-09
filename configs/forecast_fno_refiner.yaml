@@ -38,7 +38,7 @@ trainer:
 
     - class_path: pytorch_lightning.callbacks.ModelCheckpoint
       init_args:
-        dirpath: "${trainer.default_root_dir}/checkpoints/${model.net_type}"
+        dirpath: "${trainer.default_root_dir}/checkpoints_refiner/${model.net_type}"
         monitor: "val/w_rmse" # name of the logged metric which determines when model is improving
         mode: "min" # "max" means higher metric value is better, can be also "min"
         save_top_k: 1 # save k best models (determined by above metric)
@@ -62,25 +62,22 @@ trainer:
 
 # ---------------------------- MODEL -------------------------------------------
 model:
-  lr: 1e-4
+  lr: 1e-5
   beta_1: 0.9
   beta_2: 0.99
-  weight_decay: 1e-5
+  weight_decay: 1e-6
   warmup_epochs: 10000
   max_epochs: 100000
   warmup_start_lr: 1e-8
   eta_min: 1e-8
-  
-  net_type: "sfno"
-  use_geometric_loss: True
-  vars: ["2m_temperature"]
-  img_size: [32, 64]
-  in_chans: 1
-  out_chans: 1
+  net_type: "fno"
+  in_chans: 2
   modes1: 8
   modes2: 8
   width: 50
-    # class_path: models.SFNO.SFNOWrapper
+  vars: ["2m_temperature"]
+  # net:
+    # class_path: models.FNO.FNO2d
     # init_args:
       # default_vars: [
       #     "land_sea_mask",
@@ -142,33 +139,8 @@ model:
       # drop_path: 0.1
       # drop_rate: 0.1
 
-      # SFNO
-    # vars: ["2m_temperature"]
-    # img_size: [32, 64]
-    # in_chans: 1
-    # out_chans: 1
-      # spectral_transform: "sht"
-      # operator_type: "driscoll-healy"
-      # img_size: [32, 64]
-      # grid: "equiangular"
-      # scale_factor: 3
+      # FNO
       
-      # embed_dim: 256
-      # num_layers: 4
-      # activation_function: "relu"
-      # encoder_layers: 1
-      # use_mlp: True
-      # mlp_ratio: 2
-      # drop_rate: 0
-      # drop_path_rate: 0.
-      # normalization_layer: "none"
-      # hard_thresholding_fraction: 1.0
-      # use_complex_kernels: True
-      # big_skip: False
-      # factorization: None
-      # separable: False
-      # rank: 128
-      # pos_embed: False
 
 
 # ---------------------------- DATA -------------------------------------------
@@ -181,7 +153,7 @@ data:
       "2m_temperature",
       "10m_u_component_of_wind",
       "10m_v_component_of_wind",
-      "geopotential_50",
+      "`eopotential_50",
       "geopotential_250",
       "geopotential_500",
       "geopotential_600",

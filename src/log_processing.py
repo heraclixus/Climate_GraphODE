@@ -16,7 +16,7 @@ def get_metadata(checkpoint_path):
     state = torch.load(checkpoint_path, map_location=torch.device("cpu"))
     # model 
     model_hparams = state["hyper_parameters"]
-    new_model = GlobalForecastModule(net_type=model_hparams["net_type"], vars=model_hparams["vars"])
+    new_model = GlobalForecastModule(net_type=model_hparams["net_type"], vars=model_hparams["vars"], use_geometric_loss=True)
     # fail gracefully
     try: 
         new_model.load_from_checkpoint(checkpoint_path, map_location=torch.device("cpu"))
@@ -37,13 +37,20 @@ def get_metadata(checkpoint_path):
     vars = config_data["variables"]
     return net_type, predict_range, vars
 
-
 if __name__ == "__main__":
-
-    res = [f for f in glob.glob("checkpoints/*.ckpt") if "last-v" in f]
+    fno_checkpoints = [f for f in glob.glob("checkpoints/fno/*.ckpt") if "last-v" in f]
+    sfno_checkpoitns = [f for f in glob.glob("checkpoints/sfno/*.ckpt") if "last-v" in f]
     with open("checkpoint_maps.csv", "w") as f:
         f.write("checkpoint,model,predict_range,vars\n")
-        for checkpoint in res:
+        for checkpoint in fno_checkpoints:
             net_type, predict_range, vars = get_metadata(checkpoint)
+            # assert net_type == "fno"
+            print(f"{fno_checkpoints}: net_type = {net_type}, predict_range = {predict_range}, vars = {vars}")
+            f.write(f"{checkpoint},{net_type},{predict_range},{vars}\n")
+            print(f"finish writing info for {checkpoint}")
+        for checkpoint in sfno_checkpoitns:
+            net_type, predict_range, vars = get_metadata(checkpoint)
+            # assert net_type == "sfno"
+            print(f"{fno_checkpoints}: net_type = {net_type}, predict_range = {predict_range}, vars = {vars}")
             f.write(f"{checkpoint},{net_type},{predict_range},{vars}\n")
             print(f"finish writing info for {checkpoint}")

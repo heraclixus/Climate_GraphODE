@@ -38,7 +38,7 @@ trainer:
 
     - class_path: pytorch_lightning.callbacks.ModelCheckpoint
       init_args:
-        dirpath: "${trainer.default_root_dir}/checkpoints/${model.net_type}"
+        dirpath: "${trainer.default_root_dir}/checkpoints_refiner/${model.net_type}"
         monitor: "val/w_rmse" # name of the logged metric which determines when model is improving
         mode: "min" # "max" means higher metric value is better, can be also "min"
         save_top_k: 1 # save k best models (determined by above metric)
@@ -62,10 +62,10 @@ trainer:
 
 # ---------------------------- MODEL -------------------------------------------
 model:
-  lr: 1e-4
+  lr: 1e-5
   beta_1: 0.9
   beta_2: 0.99
-  weight_decay: 1e-5
+  weight_decay: 1e-6
   warmup_epochs: 10000
   max_epochs: 100000
   warmup_start_lr: 1e-8
@@ -75,7 +75,7 @@ model:
   use_geometric_loss: True
   vars: ["2m_temperature"]
   img_size: [32, 64]
-  in_chans: 1
+  in_chans: 2
   out_chans: 1
   modes1: 8
   modes2: 8

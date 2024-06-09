@@ -38,13 +38,13 @@ trainer:
 
     - class_path: pytorch_lightning.callbacks.ModelCheckpoint
       init_args:
-        dirpath: "${trainer.default_root_dir}/checkpoints"
+        dirpath: "${trainer.default_root_dir}/checkpoints/${model.net_type}"
         monitor: "val/w_rmse" # name of the logged metric which determines when model is improving
         mode: "min" # "max" means higher metric value is better, can be also "min"
         save_top_k: 1 # save k best models (determined by above metric)
         save_last: True # additionaly always save model from last epoch
         verbose: False
-        filename: "epoch_{epoch:03d}"
+        filename: "epoch_{epoch:03d}_{val/w_rmse:.2f}"
         auto_insert_metric_name: False
 
     - class_path: pytorch_lightning.callbacks.EarlyStopping
@@ -62,7 +62,7 @@ trainer:
 
 # ---------------------------- MODEL -------------------------------------------
 model:
-  lr: 5e-4
+  lr: 1e-4
   beta_1: 0.9
   beta_2: 0.99
   weight_decay: 1e-5
@@ -71,6 +71,7 @@ model:
   warmup_start_lr: 1e-8
   eta_min: 1e-8
   net_type: "fno"
+  in_chans: 1
   modes1: 8
   modes2: 8
   width: 50

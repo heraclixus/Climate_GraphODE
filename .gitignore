@@ -10,3 +10,7 @@ figs/old
 *.csv
 results/
 *.out
+figs/
+checkpoints_refiner/
+checkpoints_finetune/
+figs/

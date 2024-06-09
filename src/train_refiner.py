@@ -1,7 +1,6 @@
 import os
-
 from data_module import GlobalForecastDataModule
-from module import GlobalForecastModule
+from module_refiner import RefinerForecastModule
 from pytorch_lightning.cli import LightningCLI
 """
 temporarily, for easier debugging, use two separate classes for the standard module and the refiner based module.
@@ -10,7 +9,7 @@ temporarily, for easier debugging, use two separate classes for the standard mod
 def main():
     # Initialize Lightning with the model and data modules, and instruct it to parse the config yml
     cli = LightningCLI(
-        model_class=GlobalForecastModule,
+        model_class=RefinerForecastModule,
         datamodule_class=GlobalForecastDataModule,
         seed_everything_default=42,
         run=False,

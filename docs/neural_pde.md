@@ -25,12 +25,8 @@ $$u_t = \Pi_\theta(z_t)$$
 where: 
 
 $$\Psi_\theta = A + \mathcal{F} \circ H_\theta \circ \mathcal{F}^{-1}$$
-$$H_\theta = F_\theta(h(z)) + G_\theta(h(z))X_t \text{ for NCPDE}$$
-$$H_\theta = F_\theta(h(z)) \text{ For NPDE}$$
 
-where $X_t$ is the driving function for CPDE and $A, F, G$ are learnable.
-
-In the case of climate dataset, we can treat $u_0$ as the input data with all features, while the control path $\{X_t\}$ maybe the time series without the target feature. 
+$H_\theta = F_\theta(h(z)) + G_\theta(h(z))X_t$ for NCPDE, $H_\theta = F_\theta(h(z))$ For NPDE, and $X_t$ is the driving function for CPDE and $A, F, G$ are learnable. In the case of climate dataset, we can treat $u_0$ as the input data with all features, while the control path $\{X_t\}$ maybe the time series without the target feature. 
 
 ## Implementation
 
@@ -83,3 +79,10 @@ The shape test (shapes agree) can be found in `integration_test.py`.
 ### Extension
 
 The design of $H$ is key. In the most basic case we have CNN (convolution2D) for the ODEfunction (or CDEFunction) class, but it is possible to use GNN & Neural Operator to do it (Neural Operator is debatable since a Fourier transform is already performed.)
+
+
+### Open Question: How to choose Control?
+
+For climate forecast, is there a good choice of the control signal? We don't want to leak the data at time $T$.
+
+Also is it possible to combine CDE and ODE? (e.g., support with $\{X_t\}_{t=0}^{T-\Delta t}$ but not for $\{X_{t}\}_{t=T-\Delta t}^{T}$)

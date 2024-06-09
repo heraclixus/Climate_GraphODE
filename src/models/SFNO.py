@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 from torch_harmonics.examples.sfno import SphericalFourierNeuralOperatorNet
-from torch_harmonics.examples.shallow_water_equations import ShallowWaterSolver
 from torch_harmonics import *
 from lib.metrics import *
 from lib.losses import GeometricLpLoss
@@ -70,6 +69,7 @@ class SFNOWrapper(nn.Module):
     # original SFNO only takes in x (b, c, H, W) and output same shape 
     # SFNO uses its own spherical based loss function for training. 
     def forward(self, x, y, lat):
+        print(f"x = {x.shape}, y = {y.shape}")
         y_pred = self.sfno_model(x)  # (b,c,h,w)
         if self.use_geometric_loss:
             return self.geometric_loss(y_pred, y, vars=self.vars), y_pred
@@ -82,6 +82,6 @@ class SFNOWrapper(nn.Module):
         return [m(preds, y, transform, out_variables, lat, clim, log_postfix) for m in metrics]
 
     # visualize spectrum after fft 
-    def visualize_spectrum(self, x, y,lat, out_variables, batch_id, pred_range, type="fft"):
+    def visualize_spectrum(self, x, y,lat, out_variables, batch_id, pred_range, type="fft", refiner=False):
         _, preds = self.forward(x, y, lat=lat)
-        one_step_plot_spectrum(preds, y, vars=out_variables, model_name="SFNO", batch_id=batch_id, predict_range=pred_range, type=type)
+        one_step_plot_spectrum(preds, y, vars=out_variables, model_name="SFNO", batch_id=batch_id, predict_range=pred_range, type=type, refiner=refiner)

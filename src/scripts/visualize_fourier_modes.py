@@ -95,18 +95,24 @@ def obtain_freq_vars(x, x_pred, idx, type="fft", n_bins=32):
 """
 a specific plotting function when there's only one feature
 """
-def one_step_plot_spectrum_single(x, x_pred, vars, model_name, predict_range=72, type="fft"):
+def one_step_plot_spectrum_single(x, x_pred, vars, model_name, predict_range=72, type="fft", refiner=False):
     fig = plt.figure(figsize=(10,5))
     data, data_diff = obtain_freq_vars(x, x_pred, 0, type=type)
     xlabel = "wavenumber" if type == "fft" else "degree"
     sns.lineplot(data=data, x=xlabel, y="spectrum energy", hue="label")
     plt.title(f"spectrum energy plot for channel {vars[0]}")
-    plt.savefig(f"figs/spectrum/{model_name}/spectrum_plot_{model_name}_test_range={predict_range}_{type}.png")
+    if refiner:
+        plt.savefig(f"figs/spectrum/refiner/{model_name}/spectrum_plot_{model_name}_test_range={predict_range}_{type}.png")
+    else:
+        plt.savefig(f"figs/spectrum/{model_name}/spectrum_plot_{model_name}_test_range={predict_range}_{type}.png")
     plt.close()
     fig = plt.figure(figsize=(10,5))
     sns.lineplot(data=data_diff, x=xlabel, y="Error energy spectrum")
     plt.title(f"Error in spectrum energy for {model_name}, predict_range = {predict_range}")
-    plt.savefig(f"figs/spectrum/{model_name}/spectrum_error_{model_name}_test_range={predict_range}_{type}.png")
+    if refiner:
+        plt.savefig(f"figs/spectrum/refiner/{model_name}/spectrum_error_{model_name}_test_range={predict_range}_{type}.png")
+    else:
+        plt.savefig(f"figs/spectrum/{model_name}/spectrum_error_{model_name}_test_range={predict_range}_{type}.png")
 
 """
 Method 1: plot the frequency spectrum of a pred vs target batch
@@ -115,11 +121,11 @@ input: pred: Tensor (b, c, h, w)
        target: Tensor (b, c, h, w)
 """
 
-def one_step_plot_spectrum(pred, target, vars, model_name, batch_id = None, predict_range=72, type="fft"):
+def one_step_plot_spectrum(pred, target, vars, model_name, batch_id = None, predict_range=72, type="fft", refiner=False):
     print(f"visualizing data of shape {target.shape}")
     n_channels = pred.shape[1]        
     if len(vars) == 1:
-        one_step_plot_spectrum_single(pred, target, vars, model_name, predict_range, type=type)
+        one_step_plot_spectrum_single(pred, target, vars, model_name, predict_range, type=type, refiner=refiner)
         return 
     n_rows = n_channels // 2
     fig, ax = plt.subplots(n_rows, 2)
@@ -141,7 +147,10 @@ def one_step_plot_spectrum(pred, target, vars, model_name, batch_id = None, pred
         sns.lineplot(data=data2, ax=ax2, x=xlabel, y="spectrum energy", hue="label")
         ax2.set_title(f"spectrum plot for channel {vars[idx2]}")
     plt.tight_layout()
-    plt.savefig(f"figs/spectrum/{model_name}/spectrum_plot_{model_name}_{batch_id}_range={predict_range}_{type}.png")
+    if refiner:
+        plt.savefig(f"figs/spectrum/refiner/{model_name}/spectrum_plot_{model_name}_{batch_id}_range={predict_range}_{type}.png")
+    else:    
+        plt.savefig(f"figs/spectrum/{model_name}/spectrum_plot_{model_name}_{batch_id}_range={predict_range}_{type}.png")
     plt.close()
 
     # error plot
@@ -163,7 +172,11 @@ def one_step_plot_spectrum(pred, target, vars, model_name, batch_id = None, pred
         sns.lineplot(data=data2, ax=ax2, x=xlabel, y="Error energy spectrum")
         ax2.set_title(f"Error in spectrum energy for channel {vars[idx2]}")
     plt.tight_layout()
-    plt.savefig(f"figs/spectrum/{model_name}/spectrum_error_{model_name}_{batch_id}_range={predict_range}_{type}.png")
+    
+    if refiner:
+        plt.savefig(f"figs/spectrum/refiner/{model_name}/spectrum_error_{model_name}_{batch_id}_range={predict_range}_{type}.png")
+    else:
+        plt.savefig(f"figs/spectrum/{model_name}/spectrum_error_{model_name}_{batch_id}_range={predict_range}_{type}.png")
     plt.close()
 
 
